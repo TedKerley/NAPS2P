@@ -7,6 +7,8 @@ using NAPS2.Scan.Images;
 
 namespace NAPS2.Scan
 {
+    using NAPS2.Scan.Wia;
+
     /// <summary>
     /// An interface for document scanning drivers (e.g. WIA, TWAIN).
     /// </summary>

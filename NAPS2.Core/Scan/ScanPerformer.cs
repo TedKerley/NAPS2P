@@ -10,6 +10,8 @@ using NAPS2.Util;
 
 namespace NAPS2.Scan
 {
+    using NAPS2.Scan.Wia;
+
     public class ScanPerformer : IScanPerformer
     {
         private readonly IScanDriverFactory driverFactory;
@@ -29,10 +31,11 @@ namespace NAPS2.Scan
 
         public void PerformScan(ScanProfile scanProfile, ScanParams scanParams, IWin32Window dialogParent, ISaveNotify notify, Action<ScannedImage> imageCallback)
         {
-            var driver = driverFactory.Create(scanProfile.DriverName);
+            IScanDriver driver = driverFactory.Create(scanProfile.DriverName);
             driver.DialogParent = dialogParent;
             driver.ScanProfile = scanProfile;
             driver.ScanParams = scanParams;
+            
             try
             {
                 if (scanProfile.Device == null)

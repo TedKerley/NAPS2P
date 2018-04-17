@@ -440,20 +440,16 @@ namespace NAPS2.WinForms
 
         private void ScanWithNewProfile()
         {
-            var editSettingsForm = FormFactory.Create<FEditProfile>();
-            editSettingsForm.ScanProfile = appConfigManager.Config.DefaultProfileSettings ?? new ScanProfile { Version = ScanProfile.CURRENT_VERSION };
-            editSettingsForm.ShowDialog();
-            if (!editSettingsForm.Result)
+            var scanProfile = profileManager.NewProfile(FormFactory,this.appConfigManager);
+
+            if (scanProfile == null)
             {
                 return;
             }
-            profileManager.Profiles.Add(editSettingsForm.ScanProfile);
-            profileManager.DefaultProfile = editSettingsForm.ScanProfile;
-            profileManager.Save();
 
             UpdateScanButton();
 
-            scanPerformer.PerformScan(editSettingsForm.ScanProfile, new ScanParams(), this, notify, ReceiveScannedImage);
+            scanPerformer.PerformScan(scanProfile, new ScanParams(), this, notify, ReceiveScannedImage);
             Activate();
         }
 
@@ -861,6 +857,7 @@ namespace NAPS2.WinForms
 
             ksm.Assign("Ctrl+Enter", tsScan);
             ksm.Assign("Ctrl+B", tsBatchScan);
+            ksm.Assign("Ctrl+V", tsPreviewScan);
             ksm.Assign("Ctrl+O", tsImport);
             ksm.Assign("Ctrl+S", tsdSavePDF);
             ksm.Assign("Ctrl+P", tsPrint);
@@ -1032,6 +1029,16 @@ namespace NAPS2.WinForms
             form.ImageCallback = ReceiveScannedImage;
             form.ShowDialog();
             UpdateScanButton();
+        }
+
+        private void tsPreviewScan_Click(object sender, EventArgs e)
+        {
+            var form = FormFactory.Create<FPreviewScan>();
+            //form.ImageCallback = ReceiveScannedImage;
+            form.ImageCallback = ReceiveScannedImage;
+            form.ShowDialog();
+            UpdateScanButton();
+
         }
 
         private void tsProfiles_Click(object sender, EventArgs e)
@@ -1873,5 +1880,6 @@ namespace NAPS2.WinForms
         }
 
         #endregion
+
     }
 }

@@ -177,6 +177,7 @@
     <Compile Include="Scan\Twain\Legacy\TwainDefs.cs" />
     <Compile Include="Scan\Twain\Legacy\TwainLib.cs" />
     <Compile Include="Scan\Twain\TwainWrapper.cs" />
+    <Compile Include="Scan\Wia\Offset.cs" />
     <Compile Include="Unsafe\UnsafeImageOps.cs" />
     <Compile Include="Util\ChangeTracker.cs" />
     <Compile Include="Util\ChaosMonkey.cs" />
@@ -315,6 +316,7 @@
     <Compile Include="Host\ProcessJob.cs" />
     <Compile Include="ImportExport\DirectImageTransfer.cs" />
     <Compile Include="Util\KeyboardShortcutManager.cs" />
+    <Compile Include="Util\ProfileManagerExtensions.cs" />
     <Compile Include="Util\Slice.cs" />
     <Compile Include="Util\StillImage.cs" />
     <Compile Include="Util\StringWrapper.cs" />
@@ -359,6 +361,12 @@
     </Compile>
     <Compile Include="WinForms\FBatchScan.Designer.cs">
       <DependentUpon>FBatchScan.cs</DependentUpon>
+    </Compile>
+    <Compile Include="WinForms\FPreviewScan.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WinForms\FPreviewScan.Designer.cs">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
     </Compile>
     <Compile Include="WinForms\FHueSaturation.cs">
       <SubType>Form</SubType>
@@ -1301,6 +1309,131 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FBatchScan.zh-TW.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FBatchScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.af.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.ar.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.bg.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.ca.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.cs.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.da.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.de.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.el.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.es.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.et.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.fa.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.fi.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.fr.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.he.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.hr.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.hu.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.it.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.ko.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.lt.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.lv.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.nb.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.nl.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.nn.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.pl.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.pt-BR.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.pt-PT.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.ro.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.ru.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.si.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.sk.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.sl.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.sq.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.sr-Cyrl.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.sr-Latn.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.sv.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.tr.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.uk.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.vi.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.zh-CHS.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FPreviewScan.zh-TW.resx">
+      <DependentUpon>FPreviewScan.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FHueSaturation.af.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FHueSaturation.cs</DependentUpon>
@@ -5108,6 +5241,7 @@
     <Content Include="Icons\contrast_with_sun.ico" />
     <Content Include="Icons\control_play_blue-small.png" />
     <Content Include="Icons\email.ico" />
+    <None Include="Icons\eye.png" />
     <Content Include="Icons\file_extension_pdf.ico" />
     <Content Include="Icons\image_edit.png" />
     <Content Include="Icons\picture.ico" />
@@ -5122,6 +5256,7 @@
     <Content Include="Icons\sharpen.ico" />
     <Content Include="Icons\text.ico" />
     <Content Include="Icons\text.png" />
+    <Content Include="Icons\eye.ico" />
     <Content Include="Icons\transform_crop.ico" />
     <Content Include="Icons\transform_crop.png" />
     <Content Include="Icons\weather_sun.ico" />
@@ -5167,6 +5302,7 @@
     <None Include="Icons\blueprints.png" />
     <None Include="Icons\blueprints-small.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

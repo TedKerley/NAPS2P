@@ -9,6 +9,8 @@ using WIA;
 
 namespace NAPS2.Scan.Wia
 {
+    using System.Drawing;
+
     internal static class WiaApi
     {
         #region WIA Constants
@@ -36,6 +38,7 @@ namespace NAPS2.Scan.Wia
             public const int BRIGHTNESS = 6154;
             public const int CONTRAST = 6155;
             public const int HORIZONTAL_START = 6149;
+            public const int VERTICAL_START = 6150;
         }
 
         public static class Errors
@@ -222,7 +225,7 @@ namespace NAPS2.Scan.Wia
 
         #region Device/Item Configuration
 
-        public static void Configure(Device device, Item item, ScanProfile profile)
+        public static void Configure(Device device, Item item, ScanProfile profile, Offset offsets)
         {
             if (profile.UseNativeUI)
             {
@@ -230,10 +233,10 @@ namespace NAPS2.Scan.Wia
             }
 
             ConfigureDeviceProperties(device, profile);
-            ConfigureItemProperties(device, item, profile);
+            ConfigureItemProperties(device, item, profile, offsets ?? new Offset());
         }
 
-        private static void ConfigureItemProperties(Device device, Item item, ScanProfile profile)
+        private static void ConfigureItemProperties(Device device, Item item, ScanProfile profile, Offset offsets)
         {
             switch (profile.BitDepth)
             {
@@ -285,15 +288,17 @@ namespace NAPS2.Scan.Wia
 
             if (profile.WiaOffsetWidth)
             {
-                SetItemIntProperty(item, pageWidth + horizontalPos, ItemProperties.HORIZONTAL_EXTENT);
-                SetItemIntProperty(item, horizontalPos, ItemProperties.HORIZONTAL_START);
+                SetItemIntProperty(item, horizontalPos + offsets.Left, ItemProperties.HORIZONTAL_START);
+                SetItemIntProperty(item, pageWidth + horizontalPos - offsets.Right, ItemProperties.HORIZONTAL_EXTENT);
             }
             else
             {
-                SetItemIntProperty(item, horizontalPos, ItemProperties.HORIZONTAL_START);
-                SetItemIntProperty(item, pageWidth, ItemProperties.HORIZONTAL_EXTENT);
+                SetItemIntProperty(item, horizontalPos + offsets.Left, ItemProperties.HORIZONTAL_START);
+                SetItemIntProperty(item, pageWidth - offsets.Right, ItemProperties.HORIZONTAL_EXTENT);
             }
-            SetItemIntProperty(item, pageHeight, ItemProperties.VERTICAL_EXTENT);
+
+            SetItemIntProperty(item, pageHeight - offsets.Bottom, ItemProperties.VERTICAL_EXTENT);
+            SetItemIntProperty(item, offsets.Top, ItemProperties.VERTICAL_START);
 
             if (!profile.BrightnessContrastAfterScan)
             {

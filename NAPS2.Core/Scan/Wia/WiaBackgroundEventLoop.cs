@@ -17,15 +17,18 @@ namespace NAPS2.Scan.Wia
         private readonly ScanProfile profile;
         private readonly ScanDevice scanDevice;
 
+        private readonly ScanParams scanParams;
+
         private readonly AutoResetEvent initWaiter = new AutoResetEvent(false);
         private Thread thread;
         private Form form;
         private WiaState wiaState;
 
-        public WiaBackgroundEventLoop(ScanProfile profile, ScanDevice scanDevice, ThreadFactory threadFactory)
+        public WiaBackgroundEventLoop(ScanProfile profile, ScanDevice scanDevice, ThreadFactory threadFactory, ScanParams scanParams)
         {
             this.profile = profile;
             this.scanDevice = scanDevice;
+            this.scanParams = scanParams;
 
             thread = threadFactory.CreateThread(RunEventLoop);
             thread.SetApartmentState(ApartmentState.STA);
@@ -100,7 +103,7 @@ namespace NAPS2.Scan.Wia
         {
             var device = WiaApi.GetDevice(scanDevice);
             var item = WiaApi.GetItem(device, profile);
-            WiaApi.Configure(device, item, profile);
+            WiaApi.Configure(device, item, profile, this.scanParams.Offsets);
             return new WiaState(device, item);
         }
 
