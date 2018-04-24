@@ -287,9 +287,9 @@ namespace NAPS2.WinForms
             // 
             // tsPreviewScan
             // 
-            this.tsPreviewScan.Image = global::NAPS2.Icons.eye1;
-            this.tsPreviewScan.Name = "tsPreviewScan";
+            this.tsPreviewScan.Image = global::NAPS2.Icons.eye;
             resources.ApplyResources(this.tsPreviewScan, "tsPreviewScan");
+            this.tsPreviewScan.Name = "tsPreviewScan";
             this.tsPreviewScan.Click += new System.EventHandler(this.tsPreviewScan_Click);
             // 
             // tsProfiles

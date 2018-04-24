@@ -1705,6 +1705,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FDesktop.de.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FDesktop.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FDesktop.el.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FDesktop.cs</DependentUpon>
@@ -1753,6 +1754,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FDesktop.nn.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FDesktop.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FDesktop.pl.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FDesktop.cs</DependentUpon>
@@ -1799,6 +1801,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FDesktop.uk.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FDesktop.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FDesktop.vi.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FDesktop.cs</DependentUpon>

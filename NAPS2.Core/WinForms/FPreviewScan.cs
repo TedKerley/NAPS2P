@@ -93,6 +93,17 @@ namespace NAPS2.WinForms
             // The scan button is disabled until a preview has been performed.
             this.btnScan.Enabled = false;
             this.btnPreviewPrevious.Enabled = false;
+
+            // Create default images so the the preview size can be set with a default image.
+            // TODO - draw something on the image.
+            var pageDimensions = this.currentScanProfile.PageSize.PageDimensions();
+            var dotsPerInch = 100; ////this.currentScanProfile.Resolution.ToIntDpi(); TODO - set this to the preview dpi
+            
+            int widthInPixels = (int)(pageDimensions.WidthInInches() * dotsPerInch);
+            int heightInPixels = (int)(pageDimensions.HeightInInches() * dotsPerInch);
+            this.workingImage = new Bitmap(widthInPixels, widthInPixels);
+            this.workingImage2 = (Bitmap)workingImage.Clone();
+            this.UpdateCropBounds();
         }
 
         private void btnClose_Click(object sender, EventArgs e)
@@ -319,12 +330,18 @@ namespace NAPS2.WinForms
 
         private void UpdateCropBounds()
         {
-            this.tbLeft.Maximum = this.tbRight.Maximum = this.workingImage.Width;
-            this.tbTop.Maximum = this.tbBottom.Maximum = this.workingImage.Height;
+            this.SetCropBounds(this.workingImage.Width, this.workingImage.Height);
+        }
+
+        private void SetCropBounds(int width, int height)
+        {
+            this.tbLeft.Maximum = this.tbRight.Maximum = width;
+            this.tbTop.Maximum = this.tbBottom.Maximum = height;
 
             this.tbLeft.Value = this.tbTop.Value = 0;
-            this.tbRight.Value = this.workingImage.Width;
-            this.tbTop.Value = this.workingImage.Height;
+            this.tbRight.Value = width;
+            this.tbTop.Value = height;
+
         }
 
         private void UpdateLayout()

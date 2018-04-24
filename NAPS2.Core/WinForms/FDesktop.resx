@@ -369,6 +369,9 @@
   <data name="tsBatchScan.Text" xml:space="preserve">
     <value>&amp;Batch Scan</value>
   </data>
+  <data name="tsPreviewScan.ImageScaling" type="System.Windows.Forms.ToolStripItemImageScaling, System.Windows.Forms">
+    <value>None</value>
+  </data>
   <data name="tsPreviewScan.Size" type="System.Drawing.Size, System.Drawing">
     <value>168, 38</value>
   </data>
