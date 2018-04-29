@@ -2,6 +2,8 @@
 //     Copyright (c)  High Quality Solutions Limited. All rights reserved.
 // </copyright>
 
+using NAPS2.Scan.Images.Transforms;
+
 namespace NAPS2.WinForms
 {
     using System;
@@ -20,6 +22,8 @@ namespace NAPS2.WinForms
 
     partial class FPreviewScan : FormBase
     {
+        private const int BITMAPTH_OVERWIDTH_TOLERANCE = 5;
+
         private readonly AppConfigManager appConfigManager;
 
         private readonly ChangeTracker changeTracker;
@@ -93,29 +97,41 @@ namespace NAPS2.WinForms
                 .Bind(this.tbLeft, this.tbRight).WidthTo(() => (int)(this.GetImageWidthRatio() * this.pictureBox.Width)).LeftTo(() => (int)((1 - this.GetImageWidthRatio()) * this.pictureBox.Width / 2))
                 .Bind(this.tbTop, this.tbBottom).HeightTo(() => (int)(this.GetImageHeightRatio() * this.pictureBox.Height)).TopTo(() => (int)((1 - this.GetImageHeightRatio()) * this.pictureBox.Height / 2))
                 .Bind(this.tbBottom).RightToForm().Bind(this.tbRight).BottomToForm()
-                .Bind(this.btnDone, this.btnPreview, this.btnScan, this.btnPreviewPrevious).TopToForm()
-                .Bind(this.btnPreview, this.btnScan, this.btnDone, this.btnPreviewPrevious).RightToForm().Activate();
+                .Bind(this.btnDone, this.btnReset, this.btnPreview, this.btnScan, this.btnPreviewPrevious).TopToForm()
+                .Bind(this.btnPreview, this.btnScan, this.btnReset, this.btnDone, this.btnPreviewPrevious).RightToForm().Activate();
 
+
+            this.Reset();
+        }
+
+        private void Reset()
+        {
+            this.offsets.Clear();
+            this.previousOffsets = null;
 
             // The scan button is disabled until a preview has been performed.
             this.btnScan.Enabled = false;
             this.btnPreviewPrevious.Enabled = false;
-
+            
             // Create default images so the the preview size can be set with a default image.
-            // TODO - draw something on the image.
+           
             var pageDimensions = this.currentScanProfile.PageSize.PageDimensions();
-            var dotsPerInch = 100; ////this.currentScanProfile.Resolution.ToIntDpi(); TODO - set this to the preview dpi
+
             
-            int widthInPixels = (int)(pageDimensions.WidthInInches() * dotsPerInch);
-            int heightInPixels = (int)(pageDimensions.HeightInInches() * dotsPerInch);
+            var previewResolution = this.currentScanProfile.PrevewResolution.ToIntDpi();
+
+            int widthInPixels = (int) (pageDimensions.WidthInInches() * previewResolution);
+            int heightInPixels = (int) (pageDimensions.HeightInInches() * previewResolution);
+            this.workingImage?.Dispose();
             this.workingImage = new Bitmap(widthInPixels, heightInPixels);
-            
+
             using (var g = Graphics.FromImage(this.workingImage))
             {
                 g.Clear(Color.Linen);
             }
 
-            this.workingImage2 = (Bitmap)workingImage.Clone();
+            this.workingImage2?.Dispose();
+            this.workingImage2 = (Bitmap) workingImage.Clone();
 
             this.UpdateCropBounds();
             this.UpdatePreviewBox();
@@ -281,18 +297,43 @@ namespace NAPS2.WinForms
                                       ? this.offsets.Clone()
                                       : this.previousOffsets.Append(this.offsets);
 
-            int scale = preview ? 1 : 3;
-
             var scanProfile = this.currentScanProfile.Clone();
 
-            // TODO - set these in the profile.
-            scanProfile.Resolution = preview ? ScanDpi.Dpi100 : ScanDpi.Dpi300;
+            double scale = preview ? 1 : (double)scanProfile.Resolution.ToIntDpi() / scanProfile.PrevewResolution.ToIntDpi();
+            offsetsToUse = offsetsToUse.Scale(scale);
+
+            int dpi = preview
+                ? scanProfile.PrevewResolution.ToIntDpi()
+                : scanProfile.Resolution.ToIntDpi();
+ 
+
+            // Need a local copy to crop width to the correct size if required.
+            ScannedImage scan = null;
+
+            scanProfile.Resolution = preview ? scanProfile.PrevewResolution : scanProfile.Resolution;
             this.scanPerformer.PerformScan(
                 scanProfile,
-                new ScanParams() { Offsets = offsetsToUse.Scale(scale) },
+                new ScanParams() { Offsets = offsetsToUse },
                 this,
                 null,
-                onImageAction);
+                s => scan = s);
+
+
+            // Note - there seems to be a minimum width to the scan, so crop to the requested width. 
+            int requestedImageWidth = (int)(scanProfile.PageSize.PageDimensions().WidthInInches() * dpi - offsetsToUse.Left - offsetsToUse.Right);
+
+            //int requestedImageHeight = (int)(scanProfile.PageSize.PageDimensions().HeightInInches() * dpi - offsetsToUse.Top - offsetsToUse.Bottom);
+
+            using (Bitmap bitmap = (Bitmap) Image.FromStream(this.scannedImageRenderer.RenderToStream(scan)))
+            {
+                if(bitmap.Width - requestedImageWidth > BITMAPTH_OVERWIDTH_TOLERANCE)
+
+                scan.AddTransform(new CropTransform() {Right = bitmap.Width - requestedImageWidth});
+                scan.SetThumbnail(thumbnailRenderer.RenderThumbnail(scan));
+
+            }
+
+            onImageAction(scan);
 
             return offsetsToUse;
         }
@@ -434,6 +475,11 @@ namespace NAPS2.WinForms
             this.offsets.Top = this.workingImage.Height - Math.Max(this.tbTop.Value, this.tbBottom.Value);
 
             this.UpdatePreviewBox();
+        }
+
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            this.Reset();
         }
     }
 }

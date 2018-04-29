@@ -41,6 +41,7 @@ namespace NAPS2.WinForms
             this.btnScan = new System.Windows.Forms.Button();
             this.btnPreview = new System.Windows.Forms.Button();
             this.btnPreviewPrevious = new System.Windows.Forms.Button();
+            this.btnReset = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbRight)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbLeft)).BeginInit();
@@ -107,7 +108,6 @@ namespace NAPS2.WinForms
             // 
             this.btnPreview.BackColor = System.Drawing.SystemColors.Control;
             resources.ApplyResources(this.btnPreview, "btnPreview");
-            this.btnPreview.Image = global::NAPS2.Icons.control_play_blue;
             this.btnPreview.Name = "btnPreview";
             this.btnPreview.UseVisualStyleBackColor = true;
             this.btnPreview.Click += new System.EventHandler(this.btnPreview_Click);
@@ -116,16 +116,23 @@ namespace NAPS2.WinForms
             // 
             this.btnPreviewPrevious.BackColor = System.Drawing.SystemColors.Control;
             resources.ApplyResources(this.btnPreviewPrevious, "btnPreviewPrevious");
-            this.btnPreviewPrevious.Image = global::NAPS2.Icons.control_play_blue;
             this.btnPreviewPrevious.Name = "btnPreviewPrevious";
             this.btnPreviewPrevious.UseVisualStyleBackColor = true;
             this.btnPreviewPrevious.Click += new System.EventHandler(this.btnPreviewPrevious_Click);
+            // 
+            // btnReset
+            // 
+            resources.ApplyResources(this.btnReset, "btnReset");
+            this.btnReset.Name = "btnReset";
+            this.btnReset.UseVisualStyleBackColor = true;
+            this.btnReset.Click += new System.EventHandler(this.btnReset_Click);
             // 
             // FPreviewScan
             // 
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnDone;
+            this.Controls.Add(this.btnReset);
             this.Controls.Add(this.btnPreviewPrevious);
             this.Controls.Add(this.btnPreview);
             this.Controls.Add(this.btnScan);
@@ -160,5 +167,6 @@ namespace NAPS2.WinForms
         private System.Windows.Forms.Button btnScan;
         private System.Windows.Forms.Button btnPreview;
         private System.Windows.Forms.Button btnPreviewPrevious;
+        private System.Windows.Forms.Button btnReset;
     }
 }

@@ -89,9 +89,9 @@ namespace NAPS2.Scan.Wia
         /// <param name="xScale">The x scale.</param>
         /// <param name="yScale">The y scale.</param>
         /// <returns>Scaled offset.</returns>
-        public Offset Scale(int xScale, int yScale)
+        public Offset Scale(double xScale, double yScale)
         {
-            return new Offset(this.Top * yScale, this.Bottom * yScale, this.Left * xScale, this.Right * yScale);
+            return new Offset((int) (this.Top * yScale), (int) (this.Bottom * yScale), (int) (this.Left * xScale), (int) (this.Right * xScale));
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace NAPS2.Scan.Wia
         /// </summary>
         /// <param name="scale">The scale value.</param>
         /// <returns>Scaled offset.</returns>
-        public Offset Scale(int scale)
+        public Offset Scale(double scale)
         {
             return this.Scale(scale, scale);
         }

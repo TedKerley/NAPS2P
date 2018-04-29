@@ -877,6 +877,7 @@ namespace NAPS2.WinForms
 
             ksm.Assign(ks.About, tsAbout);
             ksm.Assign(ks.BatchScan, tsBatchScan);
+            ksm.Assign(ks.PreviewScan, tsPreviewScan);
             ksm.Assign(ks.Clear, tsClear);
             ksm.Assign(ks.Delete, tsDelete);
             ksm.Assign(ks.EmailPDF, tsdEmailPDF);
@@ -1034,7 +1035,6 @@ namespace NAPS2.WinForms
         private void tsPreviewScan_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FPreviewScan>();
-            //form.ImageCallback = ReceiveScannedImage;
             form.ImageCallback = ReceiveScannedImage;
             form.ShowDialog();
             UpdateScanButton();

@@ -9,7 +9,7 @@ namespace NAPS2.Config
 {
     public class AppConfig
     {
-        public const int CURRENT_VERSION = 2;
+        public const int CURRENT_VERSION = 3;
 
         public int Version { get; set; }
 

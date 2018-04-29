@@ -12,7 +12,7 @@ namespace NAPS2.Scan
     [Serializable]
     public class ScanProfile
     {
-        public const int CURRENT_VERSION = 2;
+        public const int CURRENT_VERSION = 3;
 
         public ScanProfile()
         {
@@ -21,6 +21,9 @@ namespace NAPS2.Scan
             PageAlign = ScanHorizontalAlign.Right;
             PageSize = ScanPageSize.Letter;
             Resolution = ScanDpi.Dpi200;
+
+            // TODO - allow edit in FAdvancedScanSettings
+            PrevewResolution = ScanDpi.Dpi100;
             PaperSource = ScanSource.Glass;
             Quality = 75;
             BlankPageWhiteThreshold = 70;
@@ -76,7 +79,21 @@ namespace NAPS2.Scan
 
         public PageDimensions CustomPageSize { get; set; }
 
+        /// <summary>
+        /// Gets or sets the scan resolution.
+        /// </summary>
+        /// <value>
+        /// Scan resolution.
+        /// </value>
         public ScanDpi Resolution { get; set; }
+
+        /// <summary>
+        /// Gets or sets the scan resolution used for preview.
+        /// </summary>
+        /// <value>
+        /// Prevew scan resolution.
+        /// </value>
+        public ScanDpi PrevewResolution { get; set; }
 
         public ScanSource PaperSource { get; set; }
 
@@ -84,6 +101,12 @@ namespace NAPS2.Scan
 
         public AutoSaveSettings AutoSaveSettings { get; set; }
 
+        /// <summary>
+        /// Gets or sets the quality used for lossy compression.
+        /// </summary>
+        /// <value>
+        /// Quality value.
+        /// </value>
         public int Quality { get; set; }
 
         public bool AutoDeskew { get; set; }

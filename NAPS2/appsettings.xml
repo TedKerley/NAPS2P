@@ -88,6 +88,7 @@
     <ScanProfile12></ScanProfile12>
     <NewProfile></NewProfile>
     <BatchScan>Ctrl+B</BatchScan>
+    <PreviewScan>Ctrl+V</PreviewScan>
     <Profiles></Profiles>
     <Ocr></Ocr>
     <Import>Ctrl+O</Import>
