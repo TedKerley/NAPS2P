@@ -22,7 +22,7 @@ namespace NAPS2.WinForms
 
     partial class FPreviewScan : FormBase
     {
-        private const int BITMAPTH_OVERWIDTH_TOLERANCE = 5;
+        private const int SCAN_OVERSIZE_TOLERANCE = 5;
 
         private readonly AppConfigManager appConfigManager;
 
@@ -307,7 +307,7 @@ namespace NAPS2.WinForms
                 : scanProfile.Resolution.ToIntDpi();
  
 
-            // Need a local copy to crop width to the correct size if required.
+            // Need a local copy to crop width to the correct size
             ScannedImage scan = null;
 
             scanProfile.Resolution = preview ? scanProfile.PrevewResolution : scanProfile.Resolution;
@@ -318,18 +318,25 @@ namespace NAPS2.WinForms
                 null,
                 s => scan = s);
 
-
-            // Note - there seems to be a minimum width to the scan, so crop to the requested width. 
+            // Note - there seems to be a minimum size to the scan, so crop to the requested sizes. 
             int requestedImageWidth = (int)(scanProfile.PageSize.PageDimensions().WidthInInches() * dpi - offsetsToUse.Left - offsetsToUse.Right);
 
-            //int requestedImageHeight = (int)(scanProfile.PageSize.PageDimensions().HeightInInches() * dpi - offsetsToUse.Top - offsetsToUse.Bottom);
+            int requestedImageHeight = (int)(scanProfile.PageSize.PageDimensions().HeightInInches() * dpi - offsetsToUse.Top - offsetsToUse.Bottom);
 
             using (Bitmap bitmap = (Bitmap) Image.FromStream(this.scannedImageRenderer.RenderToStream(scan)))
             {
-                if(bitmap.Width - requestedImageWidth > BITMAPTH_OVERWIDTH_TOLERANCE)
+                int widthOversize = bitmap.Width - requestedImageWidth;
+                int heightOversize = bitmap.Height - requestedImageHeight;
+                if (widthOversize > SCAN_OVERSIZE_TOLERANCE || heightOversize > SCAN_OVERSIZE_TOLERANCE)
+                {
 
-                scan.AddTransform(new CropTransform() {Right = bitmap.Width - requestedImageWidth});
-                scan.SetThumbnail(thumbnailRenderer.RenderThumbnail(scan));
+                    scan.AddTransform(new CropTransform()
+                    {
+                        Bottom = heightOversize,
+                        Right = widthOversize
+                    });
+                    scan.SetThumbnail(thumbnailRenderer.RenderThumbnail(scan));
+                }
 
             }
 
