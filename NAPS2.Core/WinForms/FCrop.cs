@@ -113,7 +113,7 @@ namespace NAPS2.WinForms
             tbLeft.Maximum = tbRight.Maximum = workingImage.Width;
             tbTop.Maximum = tbBottom.Maximum = workingImage.Height;
 
-            tbLeft.Value = tbTop.Value = 0;
+            tbLeft.Value = tbBottom.Value = 0;
             tbRight.Value = workingImage.Width;
             tbTop.Value = workingImage.Height;
         }

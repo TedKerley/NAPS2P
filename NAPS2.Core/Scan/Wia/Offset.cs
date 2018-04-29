@@ -95,13 +95,24 @@ namespace NAPS2.Scan.Wia
         }
 
         /// <summary>
-        ///     Scales the offset with a given scale value..
+        ///     Scales the offset with a given scale value.
         /// </summary>
         /// <param name="scale">The scale value.</param>
         /// <returns>Scaled offset.</returns>
         public Offset Scale(int scale)
         {
             return this.Scale(scale, scale);
+        }
+
+        /// <summary>
+        /// Sets all offsets to zero.
+        /// </summary>
+        public void Clear()
+        {
+            this.Top = 0;
+            this.Bottom = 0;
+            this.Left = 0;
+            this.Right = 0;
         }
     }
 }

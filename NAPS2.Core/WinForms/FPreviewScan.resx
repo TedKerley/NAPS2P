@@ -123,10 +123,10 @@
   </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="pictureBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>40, 49</value>
+    <value>24, 49</value>
   </data>
   <data name="pictureBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>350, 469</value>
+    <value>366, 469</value>
   </data>
   <data name="pictureBox.SizeMode" type="System.Windows.Forms.PictureBoxSizeMode, System.Windows.Forms">
     <value>Zoom</value>
@@ -148,10 +148,10 @@
     <value>6</value>
   </data>
   <data name="tbRight.Location" type="System.Drawing.Point, System.Drawing">
-    <value>24, 524</value>
+    <value>13, 524</value>
   </data>
   <data name="tbRight.Size" type="System.Drawing.Size, System.Drawing">
-    <value>366, 45</value>
+    <value>388, 45</value>
   </data>
   <data name="tbRight.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
@@ -172,10 +172,10 @@
     <value>NoControl</value>
   </data>
   <data name="tbLeft.Location" type="System.Drawing.Point, System.Drawing">
-    <value>24, 3</value>
+    <value>13, 25</value>
   </data>
   <data name="tbLeft.Size" type="System.Drawing.Size, System.Drawing">
-    <value>369, 45</value>
+    <value>388, 45</value>
   </data>
   <data name="tbLeft.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -196,13 +196,13 @@
     <value>NoControl</value>
   </data>
   <data name="tbTop.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 27</value>
+    <value>0, 37</value>
   </data>
   <data name="tbTop.Orientation" type="System.Windows.Forms.Orientation, System.Windows.Forms">
     <value>Vertical</value>
   </data>
   <data name="tbTop.Size" type="System.Drawing.Size, System.Drawing">
-    <value>45, 491</value>
+    <value>45, 494</value>
   </data>
   <data name="tbTop.TabIndex" type="System.Int32, mscorlib">
     <value>3</value>
@@ -223,13 +223,13 @@
     <value>NoControl</value>
   </data>
   <data name="tbBottom.Location" type="System.Drawing.Point, System.Drawing">
-    <value>399, 34</value>
+    <value>399, 37</value>
   </data>
   <data name="tbBottom.Orientation" type="System.Windows.Forms.Orientation, System.Windows.Forms">
     <value>Vertical</value>
   </data>
   <data name="tbBottom.Size" type="System.Drawing.Size, System.Drawing">
-    <value>45, 491</value>
+    <value>45, 494</value>
   </data>
   <data name="tbBottom.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -247,7 +247,7 @@
     <value>5</value>
   </data>
   <data name="btnDone.Location" type="System.Drawing.Point, System.Drawing">
-    <value>450, 34</value>
+    <value>450, 508</value>
   </data>
   <data name="btnDone.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 23</value>
@@ -283,7 +283,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnScan.Location" type="System.Drawing.Point, System.Drawing">
-    <value>450, 63</value>
+    <value>450, 294</value>
   </data>
   <data name="btnScan.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 10, 0, 6</value>
@@ -325,7 +325,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnPreview.Location" type="System.Drawing.Point, System.Drawing">
-    <value>450, 138</value>
+    <value>450, 12</value>
   </data>
   <data name="btnPreview.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 10, 0, 6</value>
@@ -367,7 +367,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnPreviewPrevious.Location" type="System.Drawing.Point, System.Drawing">
-    <value>450, 226</value>
+    <value>450, 100</value>
   </data>
   <data name="btnPreviewPrevious.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 10, 0, 6</value>
@@ -431,6 +431,6 @@
     <value>FPreviewScan</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.FormBase, NAPS2.Core, Version=5.8.1.33045, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.FormBase, NAPS2.Core, Version=5.8.1.23348, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

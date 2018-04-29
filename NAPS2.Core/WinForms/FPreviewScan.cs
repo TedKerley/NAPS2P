@@ -49,6 +49,7 @@ namespace NAPS2.WinForms
         private Bitmap workingImage;
 
         private Bitmap workingImage2;
+        private LayoutManager layoutManager;
 
         public FPreviewScan(
             ChangeTracker changeTracker,
@@ -65,8 +66,6 @@ namespace NAPS2.WinForms
             this.profileManager = profileManager;
             this.appConfigManager = appConfigManager;
             this.InitializeComponent();
-
-            this.UpdateLayout();
         }
 
         public Action<ScannedImage> ImageCallback { get; set; }
@@ -90,6 +89,14 @@ namespace NAPS2.WinForms
             // Form can be shown now there is a valid profile.
             this.Visible = true;
 
+            this.layoutManager = new LayoutManager(this).Bind(this.pictureBox).WidthToForm().HeightToForm()
+                .Bind(this.tbLeft, this.tbRight).WidthTo(() => (int)(this.GetImageWidthRatio() * this.pictureBox.Width)).LeftTo(() => (int)((1 - this.GetImageWidthRatio()) * this.pictureBox.Width / 2))
+                .Bind(this.tbTop, this.tbBottom).HeightTo(() => (int)(this.GetImageHeightRatio() * this.pictureBox.Height)).TopTo(() => (int)((1 - this.GetImageHeightRatio()) * this.pictureBox.Height / 2))
+                .Bind(this.tbBottom).RightToForm().Bind(this.tbRight).BottomToForm()
+                .Bind(this.btnDone, this.btnPreview, this.btnScan, this.btnPreviewPrevious).TopToForm()
+                .Bind(this.btnPreview, this.btnScan, this.btnDone, this.btnPreviewPrevious).RightToForm().Activate();
+
+
             // The scan button is disabled until a preview has been performed.
             this.btnScan.Enabled = false;
             this.btnPreviewPrevious.Enabled = false;
@@ -101,9 +108,18 @@ namespace NAPS2.WinForms
             
             int widthInPixels = (int)(pageDimensions.WidthInInches() * dotsPerInch);
             int heightInPixels = (int)(pageDimensions.HeightInInches() * dotsPerInch);
-            this.workingImage = new Bitmap(widthInPixels, widthInPixels);
+            this.workingImage = new Bitmap(widthInPixels, heightInPixels);
+            
+            using (var g = Graphics.FromImage(this.workingImage))
+            {
+                g.Clear(Color.Linen);
+            }
+
             this.workingImage2 = (Bitmap)workingImage.Clone();
+
             this.UpdateCropBounds();
+            this.UpdatePreviewBox();
+            this.UpdateLayout();
         }
 
         private void btnClose_Click(object sender, EventArgs e)
@@ -124,6 +140,7 @@ namespace NAPS2.WinForms
             try
             {
                 this.previousOffsets = this.Scan(image => newImage = image, preview: true, usePrevious: usePrevious);
+                this.offsets.Clear();
 
                 // Disconnect bitmap from underlying file, allowing recoveryfile dispose to delete the associated file.
                 bitmap = (Bitmap)Image.FromStream(this.scannedImageRenderer.RenderToStream(newImage));
@@ -142,7 +159,7 @@ namespace NAPS2.WinForms
 
             this.pictureBox.Image?.Dispose();
 
-            // Set the picture box image to a clone, to avoid the object is in use elsewhere.
+            // Set the picture box image to a clone, to avoid "the object is in use elsewhere" error.
             this.pictureBox.Image = (Image)this.workingImage.Clone();
 
             this.UpdateLayout();
@@ -338,7 +355,8 @@ namespace NAPS2.WinForms
             this.tbLeft.Maximum = this.tbRight.Maximum = width;
             this.tbTop.Maximum = this.tbBottom.Maximum = height;
 
-            this.tbLeft.Value = this.tbTop.Value = 0;
+            this.tbLeft.Value = 0; 
+            this.tbBottom.Value = 0;
             this.tbRight.Value = width;
             this.tbTop.Value = height;
 
@@ -346,16 +364,9 @@ namespace NAPS2.WinForms
 
         private void UpdateLayout()
         {
-            var lm = new LayoutManager(this).Bind(this.pictureBox).WidthToForm().HeightToForm()
-                .Bind(this.tbLeft, this.tbRight).WidthTo(() => (int)(this.GetImageWidthRatio() * this.pictureBox.Width))
-                .LeftTo(() => (int)((1 - this.GetImageWidthRatio()) * this.pictureBox.Width / 2))
-                .Bind(this.tbTop, this.tbBottom)
-                .HeightTo(() => (int)(this.GetImageHeightRatio() * this.pictureBox.Height))
-                .TopTo(() => (int)((1 - this.GetImageHeightRatio()) * this.pictureBox.Height / 2)).Bind(this.tbBottom)
-                .RightToForm().Bind(this.tbRight).BottomToForm().Bind(this.btnDone, this.btnPreview, this.btnScan, this.btnPreviewPrevious)
-                .TopToForm().Bind(this.btnPreview, this.btnScan, this.btnDone, this.btnPreviewPrevious).RightToForm().Activate();
+            
 
-            lm.UpdateLayout();
+            layoutManager.UpdateLayout();
         }
 
         private void UpdatePreviewBox()
@@ -387,8 +398,8 @@ namespace NAPS2.WinForms
                                     var cropBorderRect = new Rectangle(
                                         this.offsets.Left,
                                         this.offsets.Top,
-                                        this.workingImage2.Width - this.offsets.Left - this.offsets.Right,
-                                        this.workingImage2.Height - this.offsets.Top - this.offsets.Bottom);
+                                        this.workingImage2.Width - this.offsets.Left - this.offsets.Right-1,
+                                        this.workingImage2.Height - this.offsets.Top - this.offsets.Bottom-1);
                                     g.SetClip(cropBorderRect);
                                     g.DrawImage(
                                         this.workingImage2,
