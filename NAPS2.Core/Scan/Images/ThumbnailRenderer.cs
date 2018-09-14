@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using NAPS2.Config;
 
 namespace NAPS2.Scan.Images
@@ -12,6 +14,8 @@ namespace NAPS2.Scan.Images
         public const int MIN_SIZE = 64;
         public const int DEFAULT_SIZE = 128;
         public static int MAX_SIZE = 1024;
+
+        private const int OVERSAMPLE = 3;
 
         public static double StepNumberToSize(double stepNumber)
         {
@@ -57,14 +61,25 @@ namespace NAPS2.Scan.Images
             this.scannedImageRenderer = scannedImageRenderer;
         }
 
-        public Bitmap RenderThumbnail(ScannedImage scannedImage)
+        public Task<Bitmap> RenderThumbnail(ScannedImage scannedImage)
         {
-            return RenderThumbnail(scannedImageRenderer.Render(scannedImage), userConfigManager.Config.ThumbnailSize);
+            return RenderThumbnail(scannedImage, userConfigManager.Config.ThumbnailSize);
         }
 
-        public Bitmap RenderThumbnail(ScannedImage scannedImage, int size)
+        public Task<Bitmap> RenderThumbnail(ScannedImage scannedImage, int size)
         {
-            return RenderThumbnail(scannedImageRenderer.Render(scannedImage), size);
+            using (var snapshot = scannedImage.Preserve())
+            {
+                return RenderThumbnail(snapshot, size);
+            }
+        }
+
+        public async Task<Bitmap> RenderThumbnail(ScannedImage.Snapshot snapshot, int size)
+        {
+            using (var bitmap = await scannedImageRenderer.Render(snapshot, snapshot.TransformList.Count == 0 ? 0 : size * OVERSAMPLE))
+            {
+                return RenderThumbnail(bitmap, size);
+            }
         }
 
         public Bitmap RenderThumbnail(Bitmap b)
@@ -112,10 +127,13 @@ namespace NAPS2.Scan.Images
 
                 // Draw the original bitmap onto the new bitmap, using the calculated location and dimensions
                 // Note that there may be some padding if the aspect ratios don't match
-                g.DrawImage(b, left, top, width, height);
+                var destRect = new RectangleF(left, top, width, height);
+                var srcRect = new RectangleF(0, 0, b.Width, b.Height);
+                g.DrawImage(b, destRect, srcRect, GraphicsUnit.Pixel);
                 // Draw a border around the orignal bitmap's content, inside the padding
                 g.DrawRectangle(Pens.Black, left, top, width - 1, height - 1);
             }
+
             return result;
         }
     }

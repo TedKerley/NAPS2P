@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 using NAPS2.Lang.Resources;
+using NAPS2.Ocr;
 using NAPS2.Operation;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
@@ -16,22 +16,18 @@ namespace NAPS2.ImportExport.Pdf
         private readonly FileNamePlaceholders fileNamePlaceholders;
         private readonly IPdfExporter pdfExporter;
         private readonly IOverwritePrompt overwritePrompt;
-        private readonly ThreadFactory threadFactory;
 
-        private bool cancel;
-        private Thread thread;
-
-        public SavePdfOperation(FileNamePlaceholders fileNamePlaceholders, IPdfExporter pdfExporter, IOverwritePrompt overwritePrompt, ThreadFactory threadFactory)
+        public SavePdfOperation(FileNamePlaceholders fileNamePlaceholders, IPdfExporter pdfExporter, IOverwritePrompt overwritePrompt)
         {
             this.fileNamePlaceholders = fileNamePlaceholders;
             this.pdfExporter = pdfExporter;
             this.overwritePrompt = overwritePrompt;
-            this.threadFactory = threadFactory;
 
             AllowCancel = true;
+            AllowBackground = true;
         }
 
-        public bool Start(string fileName, DateTime dateTime, ICollection<ScannedImage> images, PdfSettings pdfSettings, string ocrLanguageCode, bool email)
+        public bool Start(string fileName, DateTime dateTime, ICollection<ScannedImage> images, PdfSettings pdfSettings, OcrParams ocrParams, bool email)
         {
             ProgressTitle = email ? MiscResources.EmailPdfProgress : MiscResources.SavePdfProgress;
             var subFileName = fileNamePlaceholders.SubstitutePlaceholders(fileName, dateTime);
@@ -40,7 +36,6 @@ namespace NAPS2.ImportExport.Pdf
                 StatusText = string.Format(MiscResources.SavingFormat, Path.GetFileName(subFileName)),
                 MaxProgress = images.Count
             };
-            cancel = false;
 
             if (Directory.Exists(subFileName))
             {
@@ -55,16 +50,12 @@ namespace NAPS2.ImportExport.Pdf
                 }
             }
 
-            thread = threadFactory.StartThread(() =>
+            var snapshots = images.Select(x => x.Preserve()).ToList();
+            RunAsync(async () =>
             {
                 try
                 {
-                    Status.Success = pdfExporter.Export(subFileName, images, pdfSettings, ocrLanguageCode, i =>
-                    {
-                        Status.CurrentProgress = i;
-                        InvokeStatusChanged();
-                        return !cancel;
-                    });
+                    return await pdfExporter.Export(subFileName, snapshots, pdfSettings, ocrParams, OnProgress, CancelToken);
                 }
                 catch (UnauthorizedAccessException ex)
                 {
@@ -87,21 +78,15 @@ namespace NAPS2.ImportExport.Pdf
                     Log.ErrorException(MiscResources.ErrorSaving, ex);
                     InvokeError(MiscResources.ErrorSaving, ex);
                 }
-                GC.Collect();
-                InvokeFinished();
+                finally
+                {
+                    snapshots.ForEach(s => s.Dispose());
+                    GC.Collect();
+                }
+                return false;
             });
 
             return true;
-        }
-
-        public override void Cancel()
-        {
-            cancel = true;
-        }
-
-        public override void WaitUntilFinished()
-        {
-            thread.Join();
         }
     }
 }

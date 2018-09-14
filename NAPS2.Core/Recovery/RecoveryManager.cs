@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Lang.Resources;
 using NAPS2.Operation;
@@ -16,31 +16,28 @@ namespace NAPS2.Recovery
     public class RecoveryManager
     {
         private readonly IFormFactory formFactory;
-        private readonly ThreadFactory threadFactory;
         private readonly ThumbnailRenderer thumbnailRenderer;
+        private readonly IOperationProgress operationProgress;
 
-        public RecoveryManager(IFormFactory formFactory, ThreadFactory threadFactory, ThumbnailRenderer thumbnailRenderer)
+        public RecoveryManager(IFormFactory formFactory, ThumbnailRenderer thumbnailRenderer, IOperationProgress operationProgress)
         {
             this.formFactory = formFactory;
-            this.threadFactory = threadFactory;
             this.thumbnailRenderer = thumbnailRenderer;
+            this.operationProgress = operationProgress;
         }
 
         public void RecoverScannedImages(Action<ScannedImage> imageCallback)
         {
-            var op = new RecoveryOperation(formFactory, threadFactory, thumbnailRenderer);
-            var progressForm = formFactory.Create<FProgress>();
-            progressForm.Operation = op;
+            var op = new RecoveryOperation(formFactory, thumbnailRenderer);
             if (op.Start(imageCallback))
             {
-                progressForm.ShowDialog();
+                operationProgress.ShowProgress(op);
             }
         }
 
         private class RecoveryOperation : OperationBase
         {
             private readonly IFormFactory formFactory;
-            private readonly ThreadFactory threadFactory;
             private readonly ThumbnailRenderer thumbnailRenderer;
 
             private FileStream lockFile;
@@ -48,17 +45,15 @@ namespace NAPS2.Recovery
             private RecoveryIndexManager recoveryIndexManager;
             private int imageCount;
             private DateTime scannedDateTime;
-            private bool cancel;
-            private Thread thread;
 
-            public RecoveryOperation(IFormFactory formFactory, ThreadFactory threadFactory, ThumbnailRenderer thumbnailRenderer)
+            public RecoveryOperation(IFormFactory formFactory, ThumbnailRenderer thumbnailRenderer)
             {
                 this.formFactory = formFactory;
-                this.threadFactory = threadFactory;
                 this.thumbnailRenderer = thumbnailRenderer;
 
                 ProgressTitle = MiscResources.ImportProgress;
                 AllowCancel = true;
+                AllowBackground = true;
             }
 
             public bool Start(Action<ScannedImage> imageCallback)
@@ -67,7 +62,6 @@ namespace NAPS2.Recovery
                 {
                     StatusText = MiscResources.Recovering
                 };
-                cancel = false;
 
                 folderToRecoverFrom = FindAndLockFolderToRecoverFrom();
                 if (folderToRecoverFrom == null)
@@ -88,22 +82,22 @@ namespace NAPS2.Recovery
                     switch (PromptToRecover())
                     {
                         case DialogResult.Yes: // Recover
-                            thread = threadFactory.StartThread(() =>
+                            RunAsync(async () =>
                             {
                                 try
                                 {
-                                    if (DoRecover(imageCallback))
+                                    if (await DoRecover(imageCallback))
                                     {
                                         ReleaseFolderLock();
                                         DeleteFolder();
-                                        Status.Success = true;
+                                        return true;
                                     }
+                                    return false;
                                 }
                                 finally
                                 {
                                     ReleaseFolderLock();
                                     GC.Collect();
-                                    InvokeFinished();
                                 }
                             });
                             return true;
@@ -124,14 +118,14 @@ namespace NAPS2.Recovery
                 return false;
             }
 
-            private bool DoRecover(Action<ScannedImage> imageCallback)
+            private async Task<bool> DoRecover(Action<ScannedImage> imageCallback)
             {
                 Status.MaxProgress = recoveryIndexManager.Index.Images.Count;
                 InvokeStatusChanged();
 
                 foreach (RecoveryIndexImage indexImage in recoveryIndexManager.Index.Images)
                 {
-                    if (cancel)
+                    if (CancelToken.IsCancellationRequested)
                     {
                         return false;
                     }
@@ -153,7 +147,7 @@ namespace NAPS2.Recovery
                     {
                         scannedImage.AddTransform(transform);
                     }
-                    scannedImage.SetThumbnail(thumbnailRenderer.RenderThumbnail(scannedImage));
+                    scannedImage.SetThumbnail(await thumbnailRenderer.RenderThumbnail(scannedImage));
                     imageCallback(scannedImage);
 
                     Status.CurrentProgress++;
@@ -213,16 +207,6 @@ namespace NAPS2.Recovery
                     // Some problem, e.g. the folder is already locked
                     return false;
                 }
-            }
-
-            public override void Cancel()
-            {
-                cancel = true;
-            }
-
-            public override void WaitUntilFinished()
-            {
-                thread?.Join();
             }
         }
     }

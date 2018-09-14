@@ -1,23 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using NAPS2.Config;
-using NAPS2.Host;
 using NAPS2.ImportExport;
 using NAPS2.ImportExport.Email;
-using NAPS2.ImportExport.Email.Mapi;
 using NAPS2.ImportExport.Images;
 using NAPS2.ImportExport.Pdf;
 using NAPS2.Ocr;
 using NAPS2.Operation;
 using NAPS2.Scan;
 using NAPS2.Scan.Images;
+using NAPS2.Scan.Sane;
 using NAPS2.Scan.Twain;
 using NAPS2.Scan.Wia;
 using NAPS2.Util;
 using NAPS2.WinForms;
+using NAPS2.Worker;
 using Ninject.Modules;
 using NLog;
 using ILogger = NAPS2.Util.ILogger;
@@ -32,13 +31,14 @@ namespace NAPS2.DI.Modules
             Bind<IScannedImageImporter>().To<ScannedImageImporter>();
             Bind<IPdfImporter>().To<PdfSharpImporter>();
             Bind<IImageImporter>().To<ImageImporter>();
-            Bind<IPdfRenderer>().To<GhostscriptPdfRenderer>();
+            Bind<IPdfRenderer>().To<GhostscriptPdfRenderer>().InSingletonScope();
 
             // Export
             Bind<IPdfExporter>().To<PdfSharpExporter>();
             Bind<IScannedImagePrinter>().To<PrintDocumentPrinter>();
-            Bind<IEmailer>().To<MapiEmailer>();
-            Bind<IOcrEngine>().To<TesseractOcrEngine>();
+            Bind<IEmailProviderFactory>().To<NinjectEmailProviderFactory>();
+            Bind<OcrManager>().ToSelf().InSingletonScope();
+            Bind<OcrResultManager>().ToSelf().InSingletonScope();
 
             // Scan
             Bind<IScanPerformer>().To<ScanPerformer>();
@@ -47,8 +47,9 @@ namespace NAPS2.DI.Modules
 #else
             Bind<IScanDriverFactory>().To<NinjectScanDriverFactory>();
 #endif
-            Bind<IScanDriver>().To<WiaScanDriver>().Named(WiaScanDriver.DRIVER_NAME);
-            Bind<IScanDriver>().To<TwainScanDriver>().Named(TwainScanDriver.DRIVER_NAME);
+            Bind<IScanDriver>().To<WiaScanDriver>().InSingletonScope().Named(WiaScanDriver.DRIVER_NAME);
+            Bind<IScanDriver>().To<TwainScanDriver>().InSingletonScope().Named(TwainScanDriver.DRIVER_NAME);
+            Bind<IScanDriver>().To<SaneScanDriver>().InSingletonScope().Named(SaneScanDriver.DRIVER_NAME);
 
             // Config
             Bind<IProfileManager>().To<ProfileManager>().InSingletonScope();
@@ -59,11 +60,12 @@ namespace NAPS2.DI.Modules
             Bind<EmailSettingsContainer>().ToSelf().InSingletonScope();
 
             // Host
-            Bind<IX86HostServiceFactory>().To<NinjectX86HostServiceFactory>();
-            Bind<IX86HostService>().ToMethod(ctx => X86HostManager.Connect());
+            Bind<IWorkerServiceFactory>().To<NinjectWorkerServiceFactory>();
+            Bind<WorkerContext>().ToMethod(ctx => WorkerManager.NextWorker());
 
             // Misc
             Bind<IFormFactory>().To<NinjectFormFactory>();
+            Bind<NotificationManager>().ToSelf().InSingletonScope();
             Bind<IOperationFactory>().To<NinjectOperationFactory>();
             Bind<ILogger>().To<NLogLogger>().InSingletonScope();
             Bind<ChangeTracker>().ToSelf().InSingletonScope();

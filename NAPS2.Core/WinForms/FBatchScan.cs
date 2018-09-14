@@ -13,7 +13,6 @@ using NAPS2.Scan;
 using NAPS2.Scan.Batch;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
-using NAPS2.Scan.Twain;
 using NAPS2.Util;
 
 namespace NAPS2.WinForms
@@ -24,28 +23,22 @@ namespace NAPS2.WinForms
 
         private readonly IProfileManager profileManager;
         private readonly AppConfigManager appConfigManager;
-        private readonly IconButtonSizer iconButtonSizer;
-        private readonly IScanPerformer scanPerformer;
         private readonly IUserConfigManager userConfigManager;
         private readonly BatchScanPerformer batchScanPerformer;
         private readonly IErrorOutput errorOutput;
-        private readonly ThreadFactory threadFactory;
         private readonly DialogHelper dialogHelper;
 
-        private bool batchRunning = false;
-        private bool cancelBatch = false;
-        private Thread batchThread;
+        private bool batchRunning;
+        private bool cancelBatch;
+        private Task batchTask;
 
-        public FBatchScan(IProfileManager profileManager, AppConfigManager appConfigManager, IconButtonSizer iconButtonSizer, IScanPerformer scanPerformer, IUserConfigManager userConfigManager, BatchScanPerformer batchScanPerformer, IErrorOutput errorOutput, ThreadFactory threadFactory, DialogHelper dialogHelper)
+        public FBatchScan(IProfileManager profileManager, AppConfigManager appConfigManager, IUserConfigManager userConfigManager, BatchScanPerformer batchScanPerformer, IErrorOutput errorOutput, DialogHelper dialogHelper)
         {
             this.profileManager = profileManager;
             this.appConfigManager = appConfigManager;
-            this.iconButtonSizer = iconButtonSizer;
-            this.scanPerformer = scanPerformer;
             this.userConfigManager = userConfigManager;
             this.batchScanPerformer = batchScanPerformer;
             this.errorOutput = errorOutput;
-            this.threadFactory = threadFactory;
             this.dialogHelper = dialogHelper;
             InitializeComponent();
 
@@ -115,8 +108,7 @@ namespace NAPS2.WinForms
 
             if (rdMultipleScansDelay.Checked)
             {
-                int scanCount;
-                if (!int.TryParse(txtNumberOfScans.Text, out scanCount) || scanCount <= 0)
+                if (!int.TryParse(txtNumberOfScans.Text, out int scanCount) || scanCount <= 0)
                 {
                     ok = false;
                     scanCount = 0;
@@ -124,8 +116,7 @@ namespace NAPS2.WinForms
                 }
                 BatchSettings.ScanCount = scanCount;
 
-                double scanInterval;
-                if (!double.TryParse(txtTimeBetweenScans.Text, out scanInterval) || scanInterval < 0)
+                if (!double.TryParse(txtTimeBetweenScans.Text, out double scanInterval) || scanInterval < 0)
                 {
                     ok = false;
                     scanInterval = 0;
@@ -202,8 +193,7 @@ namespace NAPS2.WinForms
 
         private void btnChooseFolder_Click(object sender, EventArgs e)
         {
-            string savePath;
-            if (dialogHelper.PromptToSavePdfOrImage(null, out savePath))
+            if (dialogHelper.PromptToSavePdfOrImage(null, out string savePath))
             {
                 txtFilePath.Text = savePath;
             }
@@ -275,8 +265,7 @@ namespace NAPS2.WinForms
             EnableDisableSettings(false);
 
             // Start the batch
-            batchThread = threadFactory.CreateThread(DoBatchScan);
-            batchThread.Start();
+            batchTask = DoBatchScan();
 
             // Save settings for next time (could also do on form close)
             userConfigManager.Config.LastBatchSettings = BatchSettings;
@@ -304,11 +293,11 @@ namespace NAPS2.WinForms
             }
         }
 
-        private void DoBatchScan()
+        private async Task DoBatchScan()
         {
             try
             {
-                batchScanPerformer.PerformBatchScan(BatchSettings, this,
+                await batchScanPerformer.PerformBatchScan(BatchSettings, this,
                     image => SafeInvoke(() => ImageCallback(image)), ProgressCallback());
                 SafeInvoke(() =>
                 {

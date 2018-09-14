@@ -4,10 +4,12 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.Lang.Resources;
 using NAPS2.Operation;
+using NAPS2.Platform;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
 
@@ -46,9 +48,10 @@ namespace NAPS2.WinForms
         private ToolStripButton tsSharpen;
         private readonly ScannedImageRenderer scannedImageRenderer;
         private readonly KeyboardShortcutManager ksm;
-        private readonly UserConfigManager userConfigManager;
+        private readonly IUserConfigManager userConfigManager;
+        private readonly IOperationProgress operationProgress;
 
-        public FViewer(ChangeTracker changeTracker, IOperationFactory operationFactory, WinFormsExportHelper exportHelper, AppConfigManager appConfigManager, ScannedImageRenderer scannedImageRenderer, KeyboardShortcutManager ksm, UserConfigManager userConfigManager)
+        public FViewer(ChangeTracker changeTracker, IOperationFactory operationFactory, WinFormsExportHelper exportHelper, AppConfigManager appConfigManager, ScannedImageRenderer scannedImageRenderer, KeyboardShortcutManager ksm, IUserConfigManager userConfigManager, IOperationProgress operationProgress)
         {
             this.changeTracker = changeTracker;
             this.operationFactory = operationFactory;
@@ -57,21 +60,18 @@ namespace NAPS2.WinForms
             this.scannedImageRenderer = scannedImageRenderer;
             this.ksm = ksm;
             this.userConfigManager = userConfigManager;
+            this.operationProgress = operationProgress;
             InitializeComponent();
         }
 
         public ScannedImageList ImageList { get; set; }
         public int ImageIndex { get; set; }
         public Action DeleteCallback { get; set; }
-        public Action<IEnumerable<int>> UpdateCallback { get; set; }
         public Action<int> SelectCallback { get; set; }
 
-        protected override void OnLoad(object sender, EventArgs e)
+        protected override async void OnLoad(object sender, EventArgs e)
         {
-            tiffViewer1.Image = scannedImageRenderer.Render(ImageList.Images[ImageIndex]);
-            tbPageCurrent.Text = (ImageIndex + 1).ToString(CultureInfo.InvariantCulture);
-            lblPageTotal.Text = string.Format(MiscResources.OfN, ImageList.Images.Count);
-
+            tbPageCurrent.Visible = PlatformCompat.Runtime.IsToolbarTextboxSupported;
             if (appConfigManager.Config.HideSavePdfButton)
             {
                 toolStrip1.Items.Remove(tsSavePDF);
@@ -82,24 +82,38 @@ namespace NAPS2.WinForms
             }
 
             AssignKeyboardShortcuts();
+            UpdatePage();
+            await UpdateImage();
         }
 
-        private void GoTo(int index)
+        private async Task GoTo(int index)
         {
             if (index == ImageIndex || index < 0 || index >= ImageList.Images.Count)
             {
                 return;
             }
             ImageIndex = index;
-            UpdateImage();
-            tbPageCurrent.Text = (ImageIndex + 1).ToString(CultureInfo.CurrentCulture);
+            UpdatePage();
             SelectCallback(index);
+            await UpdateImage();
         }
 
-        private void UpdateImage()
+        private void UpdatePage()
         {
-            tiffViewer1.Image.Dispose();
-            tiffViewer1.Image = scannedImageRenderer.Render(ImageList.Images[ImageIndex]);
+            tbPageCurrent.Text = (ImageIndex + 1).ToString(CultureInfo.CurrentCulture);
+            lblPageTotal.Text = string.Format(MiscResources.OfN, ImageList.Images.Count);
+            if (!PlatformCompat.Runtime.IsToolbarTextboxSupported)
+            {
+                lblPageTotal.Text = tbPageCurrent.Text + ' ' + lblPageTotal.Text;
+            }
+        }
+
+        private async Task UpdateImage()
+        {
+            tiffViewer1.Image?.Dispose();
+            tiffViewer1.Image = null;
+            var newImage = await scannedImageRenderer.Render(ImageList.Images[ImageIndex]);
+            tiffViewer1.Image = newImage;
         }
 
         protected override void Dispose(bool disposing)
@@ -107,7 +121,7 @@ namespace NAPS2.WinForms
             if (disposing)
             {
                 components?.Dispose();
-                tiffViewer1?.Image.Dispose();
+                tiffViewer1?.Image?.Dispose();
                 tiffViewer1?.Dispose();
             }
             base.Dispose(disposing);
@@ -137,14 +151,14 @@ namespace NAPS2.WinForms
             this.tsCustomRotation = new System.Windows.Forms.ToolStripMenuItem();
             this.tsCrop = new System.Windows.Forms.ToolStripButton();
             this.tsBrightnessContrast = new System.Windows.Forms.ToolStripButton();
+            this.tsHueSaturation = new System.Windows.Forms.ToolStripButton();
+            this.tsBlackWhite = new System.Windows.Forms.ToolStripButton();
+            this.tsSharpen = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.tsSavePDF = new System.Windows.Forms.ToolStripButton();
             this.tsSaveImage = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.tsDelete = new System.Windows.Forms.ToolStripButton();
-            this.tsSharpen = new System.Windows.Forms.ToolStripButton();
-            this.tsBlackWhite = new System.Windows.Forms.ToolStripButton();
-            this.tsHueSaturation = new System.Windows.Forms.ToolStripButton();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
             this.toolStripContainer1.TopToolStripPanel.SuspendLayout();
             this.toolStripContainer1.SuspendLayout();
@@ -290,6 +304,30 @@ namespace NAPS2.WinForms
             this.tsBrightnessContrast.Name = "tsBrightnessContrast";
             this.tsBrightnessContrast.Click += new System.EventHandler(this.tsBrightnessContrast_Click);
             // 
+            // tsHueSaturation
+            // 
+            this.tsHueSaturation.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.tsHueSaturation.Image = global::NAPS2.Icons.color_management;
+            resources.ApplyResources(this.tsHueSaturation, "tsHueSaturation");
+            this.tsHueSaturation.Name = "tsHueSaturation";
+            this.tsHueSaturation.Click += new System.EventHandler(this.tsHueSaturation_Click);
+            // 
+            // tsBlackWhite
+            // 
+            this.tsBlackWhite.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.tsBlackWhite.Image = global::NAPS2.Icons.contrast_high;
+            resources.ApplyResources(this.tsBlackWhite, "tsBlackWhite");
+            this.tsBlackWhite.Name = "tsBlackWhite";
+            this.tsBlackWhite.Click += new System.EventHandler(this.tsBlackWhite_Click);
+            // 
+            // tsSharpen
+            // 
+            this.tsSharpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.tsSharpen.Image = global::NAPS2.Icons.sharpen;
+            resources.ApplyResources(this.tsSharpen, "tsSharpen");
+            this.tsSharpen.Name = "tsSharpen";
+            this.tsSharpen.Click += new System.EventHandler(this.tsSharpen_Click);
+            // 
             // toolStripSeparator3
             // 
             this.toolStripSeparator3.Name = "toolStripSeparator3";
@@ -324,30 +362,6 @@ namespace NAPS2.WinForms
             this.tsDelete.Name = "tsDelete";
             this.tsDelete.Click += new System.EventHandler(this.tsDelete_Click);
             // 
-            // tsSharpen
-            // 
-            this.tsSharpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.tsSharpen.Image = global::NAPS2.Icons.sharpen;
-            resources.ApplyResources(this.tsSharpen, "tsSharpen");
-            this.tsSharpen.Name = "tsSharpen";
-            this.tsSharpen.Click += new System.EventHandler(this.tsSharpen_Click);
-            // 
-            // tsBlackWhite
-            // 
-            this.tsBlackWhite.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.tsBlackWhite.Image = global::NAPS2.Icons.contrast_high;
-            resources.ApplyResources(this.tsBlackWhite, "tsBlackWhite");
-            this.tsBlackWhite.Name = "tsBlackWhite";
-            this.tsBlackWhite.Click += new System.EventHandler(this.tsBlackWhite_Click);
-            // 
-            // tsHueSaturation
-            // 
-            this.tsHueSaturation.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.tsHueSaturation.Image = global::NAPS2.Icons.color_management;
-            resources.ApplyResources(this.tsHueSaturation, "tsHueSaturation");
-            this.tsHueSaturation.Name = "tsHueSaturation";
-            this.tsHueSaturation.Click += new System.EventHandler(this.tsHueSaturation_Click);
-            // 
             // FViewer
             // 
             resources.ApplyResources(this, "$this");
@@ -366,126 +380,112 @@ namespace NAPS2.WinForms
         }
         #endregion
 
-        private void tbPageCurrent_TextChanged(object sender, EventArgs e)
+        private async void tbPageCurrent_TextChanged(object sender, EventArgs e)
         {
-            int indexOffBy1;
-            if (int.TryParse(tbPageCurrent.Text, out indexOffBy1))
+            if (int.TryParse(tbPageCurrent.Text, out int indexOffBy1))
             {
-                GoTo(indexOffBy1 - 1);
+                await GoTo(indexOffBy1 - 1);
             }
         }
 
-        private void tsNext_Click(object sender, EventArgs e)
+        private async void tsNext_Click(object sender, EventArgs e)
         {
-            GoTo(ImageIndex + 1);
+            await GoTo(ImageIndex + 1);
         }
 
-        private void tsPrev_Click(object sender, EventArgs e)
+        private async void tsPrev_Click(object sender, EventArgs e)
         {
-            GoTo(ImageIndex - 1);
+            await GoTo(ImageIndex - 1);
         }
 
-        private void tsRotateLeft_Click(object sender, EventArgs e)
+        private async void tsRotateLeft_Click(object sender, EventArgs e)
         {
-            ImageList.RotateFlip(Enumerable.Range(ImageIndex, 1), RotateFlipType.Rotate270FlipNone);
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await ImageList.RotateFlip(Enumerable.Range(ImageIndex, 1), RotateFlipType.Rotate270FlipNone);
+            await UpdateImage();
         }
 
-        private void tsRotateRight_Click(object sender, EventArgs e)
+        private async void tsRotateRight_Click(object sender, EventArgs e)
         {
-            ImageList.RotateFlip(Enumerable.Range(ImageIndex, 1), RotateFlipType.Rotate90FlipNone);
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await ImageList.RotateFlip(Enumerable.Range(ImageIndex, 1), RotateFlipType.Rotate90FlipNone);
+            await UpdateImage();
         }
 
-        private void tsFlip_Click(object sender, EventArgs e)
+        private async void tsFlip_Click(object sender, EventArgs e)
         {
-            ImageList.RotateFlip(Enumerable.Range(ImageIndex, 1), RotateFlipType.Rotate180FlipNone);
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await ImageList.RotateFlip(Enumerable.Range(ImageIndex, 1), RotateFlipType.Rotate180FlipNone);
+            await UpdateImage();
         }
 
-        private void tsDeskew_Click(object sender, EventArgs e)
+        private async void tsDeskew_Click(object sender, EventArgs e)
         {
             var op = operationFactory.Create<DeskewOperation>();
-            var progressForm = FormFactory.Create<FProgress>();
-            progressForm.Operation = op;
-
             if (op.Start(new[] { ImageList.Images[ImageIndex] }))
             {
-                progressForm.ShowDialog();
-                UpdateImage();
-                UpdateCallback(Enumerable.Range(ImageIndex, 1));
+                operationProgress.ShowProgress(op);
+                await UpdateImage();
             }
         }
 
-        private void tsCustomRotation_Click(object sender, EventArgs e)
+        private async void tsCustomRotation_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FRotate>();
             form.Image = ImageList.Images[ImageIndex];
             form.ShowDialog();
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await UpdateImage();
         }
 
-        private void tsCrop_Click(object sender, EventArgs e)
+        private async void tsCrop_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FCrop>();
             form.Image = ImageList.Images[ImageIndex];
             form.ShowDialog();
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await UpdateImage();
         }
 
-        private void tsBrightnessContrast_Click(object sender, EventArgs e)
+        private async void tsBrightnessContrast_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FBrightnessContrast>();
             form.Image = ImageList.Images[ImageIndex];
             form.ShowDialog();
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await UpdateImage();
         }
 
-        private void tsHueSaturation_Click(object sender, EventArgs e)
+        private async void tsHueSaturation_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FHueSaturation>();
             form.Image = ImageList.Images[ImageIndex];
             form.ShowDialog();
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await UpdateImage();
         }
 
-        private void tsBlackWhite_Click(object sender, EventArgs e)
+        private async void tsBlackWhite_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FBlackWhite>();
             form.Image = ImageList.Images[ImageIndex];
             form.ShowDialog();
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await UpdateImage();
         }
 
-        private void tsSharpen_Click(object sender, EventArgs e)
+        private async void tsSharpen_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FSharpen>();
             form.Image = ImageList.Images[ImageIndex];
             form.ShowDialog();
-            UpdateImage();
-            UpdateCallback(Enumerable.Range(ImageIndex, 1));
+            await UpdateImage();
         }
 
-        private void tsDelete_Click(object sender, EventArgs e)
+        private async void tsDelete_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show(string.Format(MiscResources.ConfirmDeleteItems, 1), MiscResources.Delete, MessageBoxButtons.OKCancel, MessageBoxIcon.Question) == DialogResult.OK)
             {
-                DeleteCurrentImage();
+                await DeleteCurrentImage();
             }
         }
 
-        private void DeleteCurrentImage()
+        private async Task DeleteCurrentImage()
         {
             // Need to dispose the bitmap first to avoid file access issues
-            tiffViewer1.Image.Dispose();
+            tiffViewer1.Image?.Dispose();
             // Actually delete the image
             ImageList.Delete(Enumerable.Range(ImageIndex, 1));
             // Update FDesktop in the background
@@ -493,49 +493,49 @@ namespace NAPS2.WinForms
 
             if (ImageList.Images.Any())
             {
-                changeTracker.HasUnsavedChanges = true;
+                changeTracker.Made();
                 // Update the GUI for the newly displayed image
                 if (ImageIndex >= ImageList.Images.Count)
                 {
-                    GoTo(ImageList.Images.Count - 1);
+                    await GoTo(ImageList.Images.Count - 1);
                 }
                 else
                 {
-                    UpdateImage();
+                    await UpdateImage();
                 }
                 lblPageTotal.Text = string.Format(MiscResources.OfN, ImageList.Images.Count);
             }
             else
             {
-                changeTracker.HasUnsavedChanges = false;
+                changeTracker.Clear();
                 // No images left to display, so no point keeping the form open
                 Close();
             }
         }
 
-        private void tsSavePDF_Click(object sender, EventArgs e)
+        private async void tsSavePDF_Click(object sender, EventArgs e)
         {
-            if (exportHelper.SavePDF(new List<ScannedImage> { ImageList.Images[ImageIndex] }, null))
+            if (await exportHelper.SavePDF(new List<ScannedImage> { ImageList.Images[ImageIndex] }, null))
             {
                 if (appConfigManager.Config.DeleteAfterSaving)
                 {
-                    DeleteCurrentImage();
+                    await DeleteCurrentImage();
                 }
             }
         }
 
-        private void tsSaveImage_Click(object sender, EventArgs e)
+        private async void tsSaveImage_Click(object sender, EventArgs e)
         {
-            if (exportHelper.SaveImages(new List<ScannedImage> { ImageList.Images[ImageIndex] }, null))
+            if (await exportHelper.SaveImages(new List<ScannedImage> { ImageList.Images[ImageIndex] }, null))
             {
                 if (appConfigManager.Config.DeleteAfterSaving)
                 {
-                    DeleteCurrentImage();
+                    await DeleteCurrentImage();
                 }
             }
         }
 
-        private void tiffViewer1_KeyDown(object sender, KeyEventArgs e)
+        private async void tiffViewer1_KeyDown(object sender, KeyEventArgs e)
         {
             if (!(e.Control || e.Shift || e.Alt))
             {
@@ -547,12 +547,12 @@ namespace NAPS2.WinForms
                     case Keys.PageDown:
                     case Keys.Right:
                     case Keys.Down:
-                        GoTo(ImageIndex + 1);
+                        await GoTo(ImageIndex + 1);
                         return;
                     case Keys.PageUp:
                     case Keys.Left:
                     case Keys.Up:
-                        GoTo(ImageIndex - 1);
+                        await GoTo(ImageIndex - 1);
                         return;
                 }
             }
@@ -560,7 +560,7 @@ namespace NAPS2.WinForms
             ksm.Perform(e.KeyData);
         }
 
-        private void tbPageCurrent_KeyDown(object sender, KeyEventArgs e)
+        private async void tbPageCurrent_KeyDown(object sender, KeyEventArgs e)
         {
             if (!(e.Control || e.Shift || e.Alt))
             {
@@ -569,12 +569,12 @@ namespace NAPS2.WinForms
                     case Keys.PageDown:
                     case Keys.Right:
                     case Keys.Down:
-                        GoTo(ImageIndex + 1);
+                        await GoTo(ImageIndex + 1);
                         return;
                     case Keys.PageUp:
                     case Keys.Left:
                     case Keys.Up:
-                        GoTo(ImageIndex - 1);
+                        await GoTo(ImageIndex - 1);
                         return;
                 }
             }

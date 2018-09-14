@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
@@ -9,9 +10,14 @@ namespace NAPS2.Scan
 {
     using NAPS2.Scan.Wia;
 
+    /// <summary>
+    /// A base class for IScanDriver implementing common error handling.
+    /// </summary>
     public abstract class ScanDriverBase : IScanDriver
     {
         public abstract string DriverName { get; }
+
+        public abstract bool IsSupported { get; }
 
         public ScanProfile ScanProfile { get; set; }
 
@@ -25,6 +31,10 @@ namespace NAPS2.Scan
 
         public ScanDevice PromptForDevice()
         {
+            if (!IsSupported)
+            {
+                throw new DriverNotSupportedException();
+            }
             if (DialogParent == null)
             {
                 throw new InvalidOperationException("IScanDriver.DialogParent must be specified before calling PromptForDevice().");
@@ -47,6 +57,10 @@ namespace NAPS2.Scan
 
         public List<ScanDevice> GetDeviceList()
         {
+            if (!IsSupported)
+            {
+                throw new DriverNotSupportedException();
+            }
             try
             {
                 return GetDeviceListInternal();
@@ -63,8 +77,12 @@ namespace NAPS2.Scan
 
         protected abstract List<ScanDevice> GetDeviceListInternal();
 
-        public IEnumerable<ScannedImage> Scan()
+        public ScannedImageSource Scan()
         {
+            if (!IsSupported)
+            {
+                throw new DriverNotSupportedException();
+            }
             if (ScanProfile == null)
             {
                 throw new InvalidOperationException("IScanDriver.ScanProfile must be specified before calling Scan().");
@@ -77,24 +95,31 @@ namespace NAPS2.Scan
             {
                 throw new InvalidOperationException("IScanDriver.ScanDevice must be specified before calling Scan().");
             }
-            if (DialogParent == null)
+            if (DialogParent == null && !ScanParams.NoUI)
             {
-                throw new InvalidOperationException("IScanDriver.DialogParent must be specified before calling Scan().");
+                throw new InvalidOperationException("IScanDriver.DialogParent must be specified before calling Scan() without NoUI.");
             }
-            try
+            
+            var source = new ScannedImageSource.Concrete();
+            Task.Factory.StartNew(async () =>
             {
-                return ScanInternal();
-            }
-            catch (ScanDriverException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new ScanDriverUnknownException(e);
-            }
+                try
+                {
+                    await ScanInternal(source);
+                    source.Done();
+                }
+                catch (ScanDriverException e)
+                {
+                    source.Error(e);
+                }
+                catch (Exception e)
+                {
+                    source.Error(new ScanDriverUnknownException(e));
+                }
+            }, TaskCreationOptions.LongRunning);
+            return source;
         }
 
-        protected abstract IEnumerable<ScannedImage> ScanInternal();
+        protected abstract Task ScanInternal(ScannedImageSource.Concrete source);
     }
 }

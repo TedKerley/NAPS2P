@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace NAPS2.Util
 {
+    /// <summary>
+    /// A debug helper that randomly causes delays or errors.
+    /// </summary>
     internal static class ChaosMonkey
     {
         private static Lazy<Random> random = new Lazy<Random>();

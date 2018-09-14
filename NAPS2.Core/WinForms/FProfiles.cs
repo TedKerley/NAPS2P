@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.ImportExport;
 using NAPS2.Lang.Resources;
+using NAPS2.Platform;
 using NAPS2.Scan;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
@@ -71,6 +72,11 @@ namespace NAPS2.WinForms
                 contextMenuStrip.Items.Remove(ctxCopy);
                 contextMenuStrip.Items.Remove(ctxPaste);
                 contextMenuStrip.Items.Remove(toolStripSeparator2);
+            }
+
+            if (!PlatformCompat.Runtime.IsImagePaddingSupported)
+            {
+                btnScan.ImageAlign = ContentAlignment.MiddleCenter;
             }
 
             var lm = new LayoutManager(this)
@@ -216,7 +222,7 @@ namespace NAPS2.WinForms
             PerformScan();
         }
 
-        private void PerformScan()
+        private async void PerformScan()
         {
             if (profileManager.Profiles.Count == 0)
             {
@@ -250,7 +256,7 @@ namespace NAPS2.WinForms
                 SelectProfile(x => x == profile);
             }
             profileManager.Save();
-            scanPerformer.PerformScan(SelectedProfile, new ScanParams(), this, null, ImageCallback);
+            await scanPerformer.PerformScan(SelectedProfile, new ScanParams(), this, null, ImageCallback);
             Activate();
         }
 

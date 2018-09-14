@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.ImportExport;
 using NAPS2.ImportExport.Email;
@@ -26,10 +27,12 @@ namespace NAPS2.WinForms
         private readonly ChangeTracker changeTracker;
         private readonly IOperationFactory operationFactory;
         private readonly IFormFactory formFactory;
-        private readonly OcrDependencyManager ocrDependencyManager;
-        private readonly IEmailer emailer;
+        private readonly OcrManager ocrManager;
+        private readonly IEmailProviderFactory emailProviderFactory;
+        private readonly IOperationProgress operationProgress;
+        private readonly IUserConfigManager userConfigManager;
 
-        public WinFormsExportHelper(PdfSettingsContainer pdfSettingsContainer, ImageSettingsContainer imageSettingsContainer, EmailSettingsContainer emailSettingsContainer, DialogHelper dialogHelper, FileNamePlaceholders fileNamePlaceholders, ChangeTracker changeTracker, IOperationFactory operationFactory, IFormFactory formFactory, OcrDependencyManager ocrDependencyManager, IEmailer emailer)
+        public WinFormsExportHelper(PdfSettingsContainer pdfSettingsContainer, ImageSettingsContainer imageSettingsContainer, EmailSettingsContainer emailSettingsContainer, DialogHelper dialogHelper, FileNamePlaceholders fileNamePlaceholders, ChangeTracker changeTracker, IOperationFactory operationFactory, IFormFactory formFactory, OcrManager ocrManager, IEmailProviderFactory emailProviderFactory, IOperationProgress operationProgress, IUserConfigManager userConfigManager)
         {
             this.pdfSettingsContainer = pdfSettingsContainer;
             this.imageSettingsContainer = imageSettingsContainer;
@@ -39,11 +42,13 @@ namespace NAPS2.WinForms
             this.changeTracker = changeTracker;
             this.operationFactory = operationFactory;
             this.formFactory = formFactory;
-            this.ocrDependencyManager = ocrDependencyManager;
-            this.emailer = emailer;
+            this.ocrManager = ocrManager;
+            this.emailProviderFactory = emailProviderFactory;
+            this.operationProgress = operationProgress;
+            this.userConfigManager = userConfigManager;
         }
 
-        public bool SavePDF(List<ScannedImage> images, ISaveNotify notify)
+        public async Task<bool> SavePDF(List<ScannedImage> images, ISaveNotify notify)
         {
             if (images.Any())
             {
@@ -63,9 +68,10 @@ namespace NAPS2.WinForms
                 }
 
                 var subSavePath = fileNamePlaceholders.SubstitutePlaceholders(savePath, DateTime.Now);
-                if (ExportPDF(subSavePath, images, false))
+                var changeToken = changeTracker.State;
+                if (await ExportPDF(subSavePath, images, false))
                 {
-                    changeTracker.HasUnsavedChanges = false;
+                    changeTracker.Saved(changeToken);
                     notify?.PdfSaved(subSavePath);
                     return true;
                 }
@@ -73,22 +79,20 @@ namespace NAPS2.WinForms
             return false;
         }
 
-        public bool ExportPDF(string filename, List<ScannedImage> images, bool email)
+        public async Task<bool> ExportPDF(string filename, List<ScannedImage> images, bool email)
         {
             var op = operationFactory.Create<SavePdfOperation>();
-            var progressForm = formFactory.Create<FProgress>();
-            progressForm.Operation = op;
 
             var pdfSettings = pdfSettingsContainer.PdfSettings;
             pdfSettings.Metadata.Creator = MiscResources.NAPS2;
-            if (op.Start(filename, DateTime.Now, images, pdfSettings, ocrDependencyManager.DefaultLanguageCode, email))
+            if (op.Start(filename, DateTime.Now, images, pdfSettings, ocrManager.DefaultParams, email))
             {
-                progressForm.ShowDialog();
+                operationProgress.ShowProgress(op);
             }
-            return op.Status.Success;
+            return await op.Success;
         }
 
-        public bool SaveImages(List<ScannedImage> images, ISaveNotify notify)
+        public async Task<bool> SaveImages(List<ScannedImage> images, ISaveNotify notify)
         {
             if (images.Any())
             {
@@ -108,13 +112,14 @@ namespace NAPS2.WinForms
                 }
 
                 var op = operationFactory.Create<SaveImagesOperation>();
-                var progressForm = formFactory.Create<FProgress>();
-                progressForm.Operation = op;
-                progressForm.Start = () => op.Start(savePath, DateTime.Now, images);
-                progressForm.ShowDialog();
-                if (op.Status.Success)
+                var changeToken = changeTracker.State;
+                if (op.Start(savePath, DateTime.Now, images))
                 {
-                    changeTracker.HasUnsavedChanges = false;
+                    operationProgress.ShowProgress(op);
+                }
+                if (await op.Success)
+                {
+                    changeTracker.Saved(changeToken);
                     notify?.ImagesSaved(images.Count, op.FirstFileSaved);
                     return true;
                 }
@@ -122,55 +127,68 @@ namespace NAPS2.WinForms
             return false;
         }
 
-        public bool EmailPDF(List<ScannedImage> images)
+        public async Task<bool> EmailPDF(List<ScannedImage> images)
         {
-            if (images.Any())
+            if (!images.Any())
             {
-                var emailSettings = emailSettingsContainer.EmailSettings;
-                var invalidChars = new HashSet<char>(Path.GetInvalidFileNameChars());
-                var attachmentName = new string(emailSettings.AttachmentName.Where(x => !invalidChars.Contains(x)).ToArray());
-                if (string.IsNullOrEmpty(attachmentName))
-                {
-                    attachmentName = "Scan.pdf";
-                }
-                if (!attachmentName.EndsWith(".pdf", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    attachmentName += ".pdf";
-                }
-                attachmentName = fileNamePlaceholders.SubstitutePlaceholders(attachmentName, DateTime.Now, false);
+                return false;
+            }
 
-                var tempFolder = new DirectoryInfo(Path.Combine(Paths.Temp, Path.GetRandomFileName()));
-                tempFolder.Create();
-                try
+            if (userConfigManager.Config.EmailSetup == null)
+            {
+                // First run; prompt for a 
+                var form = formFactory.Create<FEmailProvider>();
+                if (form.ShowDialog() != DialogResult.OK)
                 {
-                    string targetPath = Path.Combine(tempFolder.FullName, attachmentName);
-                    if (!ExportPDF(targetPath, images, true))
+                    return false;
+                }
+            }
+
+            var emailSettings = emailSettingsContainer.EmailSettings;
+            var invalidChars = new HashSet<char>(Path.GetInvalidFileNameChars());
+            var attachmentName = new string(emailSettings.AttachmentName.Where(x => !invalidChars.Contains(x)).ToArray());
+            if (string.IsNullOrEmpty(attachmentName))
+            {
+                attachmentName = "Scan.pdf";
+            }
+            if (!attachmentName.EndsWith(".pdf", StringComparison.InvariantCultureIgnoreCase))
+            {
+                attachmentName += ".pdf";
+            }
+            attachmentName = fileNamePlaceholders.SubstitutePlaceholders(attachmentName, DateTime.Now, false);
+
+            var tempFolder = new DirectoryInfo(Path.Combine(Paths.Temp, Path.GetRandomFileName()));
+            tempFolder.Create();
+            try
+            {
+                string targetPath = Path.Combine(tempFolder.FullName, attachmentName);
+                var changeToken = changeTracker.State;
+                if (!await ExportPDF(targetPath, images, true))
+                {
+                    // Cancel or error
+                    return false;
+                }
+                var message = new EmailMessage
+                {
+                    Attachments =
                     {
-                        // Cancel or error
-                        return false;
-                    }
-                    var message = new EmailMessage
-                    {
-                        Attachments =
+                        new EmailAttachment
                         {
-                            new EmailAttachment
-                            {
-                                FilePath = targetPath,
-                                AttachmentName = attachmentName
-                            }
+                            FilePath = targetPath,
+                            AttachmentName = attachmentName
                         }
-                    };
-
-                    if (emailer.SendEmail(message))
-                    {
-                        changeTracker.HasUnsavedChanges = false;
-                        return true;
                     }
-                }
-                finally
+                };
+
+                if (emailProviderFactory.Default.SendEmail(message))
                 {
-                    tempFolder.Delete(true);
+                    changeTracker.Saved(changeToken);
+                    return true;
                 }
+            }
+            finally
+            {
+                tempFolder.Delete(true);
             }
             return false;
         }

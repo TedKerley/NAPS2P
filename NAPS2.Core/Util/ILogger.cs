@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace NAPS2.Util
 {
+    /// <summary>
+    /// A base interface for logging APIs. Used by the Log class.
+    /// </summary>
     public interface ILogger
     {
         void Error(string message);

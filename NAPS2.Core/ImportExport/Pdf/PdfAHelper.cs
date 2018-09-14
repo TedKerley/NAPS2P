@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.Advanced;
 
@@ -126,7 +125,7 @@ namespace NAPS2.ImportExport.Pdf
             foreach (var font in document.Internals.GetAllObjects().OfType<PdfFont>())
             {
                 var subtype = font.Elements["/Subtype"] as PdfName;
-                if (subtype != null && subtype.Value.StartsWith("/CID"))
+                if (subtype != null && subtype.Value.StartsWith("/CID", StringComparison.InvariantCulture))
                 {
                     font.Elements["/CIDToGIDMap"] = new PdfName("/Identity");
                 }

@@ -1,33 +1,52 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Lang.Resources;
 using NAPS2.Scan.Wia;
-using WIA;
+using NAPS2.Util;
 
 namespace NAPS2.WinForms
 {
     public partial class FScanProgress : FormBase
     {
+        private readonly CancellationTokenSource cts = new CancellationTokenSource();
         private bool isComplete;
-        private bool cancel;
 
         public FScanProgress()
         {
+            CancelToken = cts.Token;
+
+            RestoreFormState = false;
             InitializeComponent();
         }
 
         public int PageNumber { get; set; }
 
-        public WiaBackgroundEventLoop EventLoop { get; set; }
-
-        public string Format { get; set; }
+        public Func<Stream> Transfer { get; set; }
 
         public Stream ImageStream { get; private set; }
 
         public Exception Exception { get; private set; }
+
+        public CancellationToken CancelToken { get; private set; }
+
+        public void OnProgress(int current, int max)
+        {
+            if (current > 0)
+            {
+                SafeInvoke(() =>
+                {
+                    progressBar.Style = ProgressBarStyle.Continuous;
+                    progressBar.Maximum = max;
+                    progressBar.Value = current;
+                });
+            }
+        }
 
         protected override void OnLoad(object sender, EventArgs eventArgs)
         {
@@ -45,15 +64,11 @@ namespace NAPS2.WinForms
 
         private void FScanProgress_Shown(object sender, EventArgs e)
         {
-            EventLoop.DoAsync(wia =>
+            Task.Factory.StartNew(() =>
             {
                 try
                 {
-                    var imageFile = (ImageFile)wia.Item?.Transfer(Format);
-                    if (imageFile != null)
-                    {
-                        ImageStream = new MemoryStream((byte[])imageFile.FileData.get_BinaryData());
-                    }
+                    ImageStream = Transfer();
                 }
                 catch (Exception ex)
                 {
@@ -61,16 +76,16 @@ namespace NAPS2.WinForms
                 }
                 SafeInvoke(() =>
                 {
-                    DialogResult = cancel ? DialogResult.Cancel : DialogResult.OK;
                     isComplete = true;
+                    DialogResult = CancelToken.IsCancellationRequested ? DialogResult.Cancel : DialogResult.OK;
                     Close();
                 });
-            });
+            }, TaskCreationOptions.LongRunning);
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
         {
-            cancel = true;
+            cts.Cancel();
             btnCancel.Enabled = false;
         }
 

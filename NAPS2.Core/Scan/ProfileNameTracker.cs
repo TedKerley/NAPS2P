@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using NAPS2.Config;
 
 namespace NAPS2.Scan
 {
+    /// <summary>
+    /// A class used to help keep profile names consistent across forms.
+    ///
+    /// TODO: This should probably be replaced by an event handler system.
+    /// </summary>
     public class ProfileNameTracker
     {
         private readonly IUserConfigManager userConfigManager;

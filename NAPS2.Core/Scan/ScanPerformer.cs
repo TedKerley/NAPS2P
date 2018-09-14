@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.ImportExport;
@@ -10,6 +11,10 @@ using NAPS2.Util;
 
 namespace NAPS2.Scan
 {
+    /// <summary>
+    /// A high-level interface used for scanning.
+    /// This abstracts away the logic of obtaining and using an instance of IScanDriver.
+    /// </summary>
     using NAPS2.Scan.Wia;
 
     public class ScanPerformer : IScanPerformer
@@ -19,17 +24,19 @@ namespace NAPS2.Scan
         private readonly IAutoSave autoSave;
         private readonly AppConfigManager appConfigManager;
         private readonly IProfileManager profileManager;
+        private readonly ScannedImageHelper scannedImageHelper;
 
-        public ScanPerformer(IScanDriverFactory driverFactory, IErrorOutput errorOutput, IAutoSave autoSave, AppConfigManager appConfigManager, IProfileManager profileManager)
+        public ScanPerformer(IScanDriverFactory driverFactory, IErrorOutput errorOutput, IAutoSave autoSave, AppConfigManager appConfigManager, IProfileManager profileManager, ScannedImageHelper scannedImageHelper)
         {
             this.driverFactory = driverFactory;
             this.errorOutput = errorOutput;
             this.autoSave = autoSave;
             this.appConfigManager = appConfigManager;
             this.profileManager = profileManager;
+            this.scannedImageHelper = scannedImageHelper;
         }
 
-        public void PerformScan(ScanProfile scanProfile, ScanParams scanParams, IWin32Window dialogParent, ISaveNotify notify, Action<ScannedImage> imageCallback)
+        public async Task PerformScan(ScanProfile scanProfile, ScanParams scanParams, IWin32Window dialogParent, ISaveNotify notify, Action<ScannedImage> imageCallback)
         {
             IScanDriver driver = driverFactory.Create(scanProfile.DriverName);
             driver.DialogParent = dialogParent;
@@ -60,14 +67,17 @@ namespace NAPS2.Scan
                     driver.ScanDevice = scanProfile.Device;
                 }
 
+                // Start the scan
+                var source = driver.Scan().Then(img => scannedImageHelper.RunBackgroundOcr(img, scanParams));
+
                 bool doAutoSave = !scanParams.NoAutoSave && !appConfigManager.Config.DisableAutoSave && scanProfile.EnableAutoSave && scanProfile.AutoSaveSettings != null;
                 if (doAutoSave)
                 {
                     if (scanProfile.AutoSaveSettings.ClearImagesAfterSaving)
                     {
                         // Auto save without piping images
-                        var images = driver.Scan().ToList();
-                        if (autoSave.Save(scanProfile.AutoSaveSettings, images, notify))
+                        var images = await source.ToList();
+                        if (await autoSave.Save(scanProfile.AutoSaveSettings, images, notify))
                         {
                             foreach (ScannedImage img in images)
                             {
@@ -87,21 +97,18 @@ namespace NAPS2.Scan
                     {
                         // Basic auto save, so keep track of images as we pipe them and try to auto save afterwards
                         var images = new List<ScannedImage>();
-                        foreach (ScannedImage scannedImage in driver.Scan())
+                        await source.ForEach(scannedImage =>
                         {
                             imageCallback(scannedImage);
                             images.Add(scannedImage);
-                        }
-                        autoSave.Save(scanProfile.AutoSaveSettings, images, notify);
+                        });
+                        await autoSave.Save(scanProfile.AutoSaveSettings, images, notify);
                     }
                 }
                 else
                 {
                     // No auto save, so just pipe images back as we get them
-                    foreach (ScannedImage scannedImage in driver.Scan())
-                    {
-                        imageCallback(scannedImage);
-                    }
+                    await source.ForEach(imageCallback);
                 }
             }
             catch (ScanDriverException e)

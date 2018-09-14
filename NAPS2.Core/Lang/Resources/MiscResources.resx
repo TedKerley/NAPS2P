@@ -282,8 +282,14 @@
   <data name="ExitWithUnsavedChanges" xml:space="preserve">
     <value>You have unsaved changes. Are you sure you want to exit and discard those changes?</value>
   </data>
+  <data name="ExitWithActiveOperations" xml:space="preserve">
+    <value>An operation is in progress. Are you sure you want to exit and cancel the operation?</value>
+  </data>
   <data name="UnsavedChanges" xml:space="preserve">
     <value>Unsaved Changes</value>
+  </data>
+  <data name="ActiveOperations" xml:space="preserve">
+    <value>Operation in Progress</value>
   </data>
   <data name="ScanPageProgress" xml:space="preserve">
     <value>Scanning page {0}</value>
@@ -440,5 +446,20 @@
   </data>
   <data name="DonatePrompt" xml:space="preserve">
     <value>NAPS2 is completely free. Consider making a donation.</value>
+  </data>
+  <data name="SaneNotAvailable" xml:space="preserve">
+    <value>The SANE driver is not available. Make sure to install the required packages:</value>
+  </data>
+  <data name="TesseractNotAvailable" xml:space="preserve">
+    <value>The OCR engine is not available. Make sure to install the required package:</value>
+  </data>
+  <data name="DriverNotSupported" xml:space="preserve">
+    <value>The selected driver is not supported on this system.</value>
+  </data>
+  <data name="OcrProgress" xml:space="preserve">
+    <value>OCR Progress</value>
+  </data>
+  <data name="RunningOcr" xml:space="preserve">
+    <value>Running OCR...</value>
   </data>
 </root>

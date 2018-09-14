@@ -1,4 +1,7 @@
-﻿using System;
+﻿// See WiaApi.cs for an explanation of this guard
+#if !NONWINDOWS
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WIA;
@@ -18,3 +21,5 @@ namespace NAPS2.Scan.Wia
         public Item Item { get; }
     }
 }
+
+#endif

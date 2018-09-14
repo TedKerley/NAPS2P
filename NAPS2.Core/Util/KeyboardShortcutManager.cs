@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows.Forms;
 
 namespace NAPS2.Util
 {
+    /// <summary>
+    /// A helper class to assign keyboard shortcuts to actions or WinForm buttons.
+    /// </summary>
     public class KeyboardShortcutManager
     {
         private readonly Dictionary<Keys, Action> dict = new Dictionary<Keys, Action>();
@@ -69,8 +73,10 @@ namespace NAPS2.Util
             {
                 try
                 {
-                    item.ShortcutKeys = keys;
+                    item.ShortcutKeys = Keys.None;
+                    item.ShortcutKeyDisplayString = TypeDescriptor.GetConverter(typeof(Keys)).ConvertToString(keys);
                     itemDict[keys] = item;
+                    dict[keys] = action;
                 }
                 catch (Exception)
                 {

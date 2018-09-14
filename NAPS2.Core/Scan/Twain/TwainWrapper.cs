@@ -6,13 +6,16 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
+using NAPS2.Platform;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
 using NAPS2.WinForms;
 using NTwain;
 using NTwain.Data;
 using NAPS2.Util;
+using NAPS2.Worker;
 
 namespace NAPS2.Scan.Twain
 {
@@ -27,10 +30,9 @@ namespace NAPS2.Scan.Twain
 
         static TwainWrapper()
         {
-#if STANDALONE
             // Path to the folder containing the 64-bit twaindsm.dll relative to NAPS2.Core.dll
             const string lib64Dir = "64";
-            if (Environment.Is64BitProcess)
+            if (Environment.Is64BitProcess && PlatformCompat.System.CanUseWin32)
             {
                 var location = Assembly.GetExecutingAssembly().Location;
                 var coreDllDir = System.IO.Path.GetDirectoryName(location);
@@ -39,7 +41,6 @@ namespace NAPS2.Scan.Twain
                     Win32.SetDllDirectory(System.IO.Path.Combine(coreDllDir, lib64Dir));
                 }
             }
-#endif
 #if DEBUG
             PlatformInfo.Current.Log.IsDebugEnabled = true;
 #endif
@@ -68,17 +69,22 @@ namespace NAPS2.Scan.Twain
             }
         }
 
-        public List<ScannedImage> Scan(IWin32Window dialogParent, bool activate, ScanDevice scanDevice, ScanProfile scanProfile, ScanParams scanParams)
+        public void Scan(IWin32Window dialogParent, bool activate, ScanDevice scanDevice, ScanProfile scanProfile, ScanParams scanParams,
+            ScannedImageSource.Concrete source)
         {
+            if (dialogParent == null)
+            {
+                dialogParent = new BackgroundForm();
+            }
             if (scanProfile.TwainImpl == TwainImpl.Legacy)
             {
-                return Legacy.TwainApi.Scan(scanProfile, scanDevice, dialogParent, formFactory);
+                Legacy.TwainApi.Scan(scanProfile, scanDevice, dialogParent, formFactory, source);
+                return;
             }
 
             PlatformInfo.Current.PreferNewDSM = scanProfile.TwainImpl != TwainImpl.OldDsm;
             var session = new TwainSession(TwainAppId);
-            var twainForm = formFactory.Create<FTwainGui>();
-            var images = new List<ScannedImage>();
+            var twainForm = scanParams.NoUI ? new Form { WindowState = FormWindowState.Minimized, ShowInTaskbar = false } : formFactory.Create<FTwainGui>();
             Exception error = null;
             bool cancel = false;
             DataSource ds = null;
@@ -126,7 +132,9 @@ namespace NAPS2.Scan.Twain
                                 }
                             }
                             scannedImageHelper.PostProcessStep2(image, result, scanProfile, scanParams, pageNumber);
-                            images.Add(image);
+                            Debug.WriteLine("NAPS2.TW - Put start");
+                            source.Put(image);
+                            Debug.WriteLine("NAPS2.TW - Put end");
                         }
                     }
                 }
@@ -165,7 +173,7 @@ namespace NAPS2.Scan.Twain
 
             twainForm.Shown += (sender, eventArgs) =>
             {
-                if (activate)
+                if (!scanParams.NoUI && activate)
                 {
                     // TODO: Set this flag based on whether NAPS2 already has focus
                     // http://stackoverflow.com/questions/7162834/determine-if-current-application-is-activated-has-focus
@@ -215,7 +223,7 @@ namespace NAPS2.Scan.Twain
             };
 
             Debug.WriteLine("NAPS2.TW - Showing TwainForm");
-            twainForm.ShowDialog(dialogParent);
+            SynchronizationContext.Current.Send(s => twainForm.ShowDialog(), null);
             Debug.WriteLine("NAPS2.TW - TwainForm closed");
 
             if (ds != null && session.IsSourceOpen)
@@ -238,8 +246,6 @@ namespace NAPS2.Scan.Twain
                 }
                 throw new ScanDriverUnknownException(error);
             }
-
-            return images;
         }
 
         private static Bitmap GetBitmapFromMemXFer(byte[] memoryData, TWImageInfo imageInfo)
@@ -257,18 +263,31 @@ namespace NAPS2.Scan.Twain
                 {
                     // No 8-bit greyscale format, so we have to transform into 24-bit
                     int rowWidth = data.Stride;
-                    int originalRowWidth = source.Length/imageHeight;
-                    byte[] source2 = new byte[rowWidth*imageHeight];
+                    int originalRowWidth = source.Length / imageHeight;
+                    byte[] source2 = new byte[rowWidth * imageHeight];
                     for (int row = 0; row < imageHeight; row++)
                     {
                         for (int col = 0; col < imageWidth; col++)
                         {
-                            source2[row*rowWidth + col*3] = source[row*originalRowWidth + col];
-                            source2[row*rowWidth + col*3 + 1] = source[row*originalRowWidth + col];
-                            source2[row*rowWidth + col*3 + 2] = source[row*originalRowWidth + col];
+                            source2[row * rowWidth + col * 3] = source[row * originalRowWidth + col];
+                            source2[row * rowWidth + col * 3 + 1] = source[row * originalRowWidth + col];
+                            source2[row * rowWidth + col * 3 + 2] = source[row * originalRowWidth + col];
                         }
                     }
                     source = source2;
+                }
+                else if (bytesPerPixel == 3)
+                {
+                    // Colors are provided as BGR, they need to be swapped to RGB
+                    int rowWidth = data.Stride;
+                    for (int row = 0; row < imageHeight; row++)
+                    {
+                        for (int col = 0; col < imageWidth; col++)
+                        {
+                            (source[row * rowWidth + col * 3], source[row * rowWidth + col * 3 + 2]) =
+                                (source[row * rowWidth + col * 3 + 2], source[row * rowWidth + col * 3]);
+                        }
+                    }
                 }
                 Marshal.Copy(source, 0, data.Scan0, source.Length);
             }
@@ -311,6 +330,12 @@ namespace NAPS2.Scan.Twain
             if (scanProfile.TwainImpl == TwainImpl.MemXfer)
             {
                 ds.Capabilities.ICapXferMech.SetValue(XferMech.Memory);
+            }
+
+            // Hide UI for console
+            if (scanParams.NoUI)
+            {
+                ds.Capabilities.CapIndicators.SetValue(BoolType.False);
             }
 
             // Paper Source
@@ -362,8 +387,7 @@ namespace NAPS2.Scan.Twain
                 horizontalOffset = (pageMaxWidth - pageWidth);
 
             ds.Capabilities.ICapUnits.SetValue(Unit.Inches);
-            TWImageLayout imageLayout;
-            ds.DGImage.ImageLayout.Get(out imageLayout);
+            ds.DGImage.ImageLayout.Get(out TWImageLayout imageLayout);
             imageLayout.Frame = new TWFrame
             {
                 Left = horizontalOffset,

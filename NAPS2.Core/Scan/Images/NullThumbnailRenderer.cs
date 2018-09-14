@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
+using System.Threading.Tasks;
 using NAPS2.Config;
 
 namespace NAPS2.Scan.Images
@@ -13,10 +13,7 @@ namespace NAPS2.Scan.Images
             : base(userConfigManager, scannedImageRenderer)
         {
         }
-
-        public override Bitmap RenderThumbnail(Bitmap b, int size)
-        {
-            return null;
-        }
+        
+        public override Bitmap RenderThumbnail(Bitmap b, int size) => null;
     }
 }

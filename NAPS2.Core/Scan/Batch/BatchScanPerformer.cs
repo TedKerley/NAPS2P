@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.ImportExport;
@@ -14,7 +15,6 @@ using NAPS2.Ocr;
 using NAPS2.Operation;
 using NAPS2.Scan.Images;
 using NAPS2.Scan.Twain;
-using NAPS2.Util;
 using NAPS2.WinForms;
 
 namespace NAPS2.Scan.Batch
@@ -27,10 +27,10 @@ namespace NAPS2.Scan.Batch
         private readonly IPdfExporter pdfExporter;
         private readonly IOperationFactory operationFactory;
         private readonly PdfSettingsContainer pdfSettingsContainer;
-        private readonly OcrDependencyManager ocrDependencyManager;
+        private readonly OcrManager ocrManager;
         private readonly IFormFactory formFactory;
 
-        public BatchScanPerformer(IScanPerformer scanPerformer, IProfileManager profileManager, FileNamePlaceholders fileNamePlaceholders, IPdfExporter pdfExporter, IOperationFactory operationFactory, PdfSettingsContainer pdfSettingsContainer, OcrDependencyManager ocrDependencyManager, IFormFactory formFactory)
+        public BatchScanPerformer(IScanPerformer scanPerformer, IProfileManager profileManager, FileNamePlaceholders fileNamePlaceholders, IPdfExporter pdfExporter, IOperationFactory operationFactory, PdfSettingsContainer pdfSettingsContainer, OcrManager ocrManager, IFormFactory formFactory)
         {
             this.scanPerformer = scanPerformer;
             this.profileManager = profileManager;
@@ -38,20 +38,20 @@ namespace NAPS2.Scan.Batch
             this.pdfExporter = pdfExporter;
             this.operationFactory = operationFactory;
             this.pdfSettingsContainer = pdfSettingsContainer;
-            this.ocrDependencyManager = ocrDependencyManager;
+            this.ocrManager = ocrManager;
             this.formFactory = formFactory;
         }
 
-        public void PerformBatchScan(BatchSettings settings, FormBase batchForm, Action<ScannedImage> imageCallback, Func<string, bool> progressCallback)
+        public async Task PerformBatchScan(BatchSettings settings, FormBase batchForm, Action<ScannedImage> imageCallback, Func<string, bool> progressCallback)
         {
-            var state = new BatchState(scanPerformer, profileManager, fileNamePlaceholders, pdfExporter, operationFactory, pdfSettingsContainer, ocrDependencyManager, formFactory)
+            var state = new BatchState(scanPerformer, profileManager, fileNamePlaceholders, pdfExporter, operationFactory, pdfSettingsContainer, ocrManager, formFactory)
             {
                 Settings = settings,
                 ProgressCallback = progressCallback,
                 BatchForm = batchForm,
                 LoadImageCallback = imageCallback
             };
-            state.Do();
+            await state.Do();
         }
 
         private class BatchState
@@ -62,14 +62,14 @@ namespace NAPS2.Scan.Batch
             private readonly IPdfExporter pdfExporter;
             private readonly IOperationFactory operationFactory;
             private readonly PdfSettingsContainer pdfSettingsContainer;
-            private readonly OcrDependencyManager ocrDependencyManager;
+            private readonly OcrManager ocrManager;
             private readonly IFormFactory formFactory;
 
             private ScanProfile profile;
             private ScanParams scanParams;
             private List<List<ScannedImage>> scans;
 
-            public BatchState(IScanPerformer scanPerformer, IProfileManager profileManager, FileNamePlaceholders fileNamePlaceholders, IPdfExporter pdfExporter, IOperationFactory operationFactory, PdfSettingsContainer pdfSettingsContainer, OcrDependencyManager ocrDependencyManager, IFormFactory formFactory)
+            public BatchState(IScanPerformer scanPerformer, IProfileManager profileManager, FileNamePlaceholders fileNamePlaceholders, IPdfExporter pdfExporter, IOperationFactory operationFactory, PdfSettingsContainer pdfSettingsContainer, OcrManager ocrManager, IFormFactory formFactory)
             {
                 this.scanPerformer = scanPerformer;
                 this.profileManager = profileManager;
@@ -77,7 +77,7 @@ namespace NAPS2.Scan.Batch
                 this.pdfExporter = pdfExporter;
                 this.operationFactory = operationFactory;
                 this.pdfSettingsContainer = pdfSettingsContainer;
-                this.ocrDependencyManager = ocrDependencyManager;
+                this.ocrManager = ocrManager;
                 this.formFactory = formFactory;
             }
 
@@ -89,7 +89,7 @@ namespace NAPS2.Scan.Batch
 
             public Action<ScannedImage> LoadImageCallback { get; set; }
 
-            public void Do()
+            public async Task Do()
             {
                 profile = profileManager.Profiles.First(x => x.DisplayName == Settings.ProfileDisplayName);
                 scanParams = new ScanParams
@@ -99,66 +99,72 @@ namespace NAPS2.Scan.Batch
                 };
                 try
                 {
-                    Input();
+                    await Input();
                 }
                 catch (Exception)
                 {
                     // Save at least some data so it isn't lost
-                    Output();
+                    await Output();
                     throw;
                 }
-                Output();
+                await Output();
             }
 
-            private void Input()
+            private async Task Input()
             {
-                scans = new List<List<ScannedImage>>();
+                await Task.Factory.StartNew(async () =>
+                {
+                    scans = new List<List<ScannedImage>>();
 
-                if (Settings.ScanType == BatchScanType.Single)
-                {
-                    if (!InputOneScan(-1))
+                    if (Settings.ScanType == BatchScanType.Single)
                     {
-                        return;
-                    }
-                }
-                else if (Settings.ScanType == BatchScanType.MultipleWithDelay)
-                {
-                    for (int i = 0; i < Settings.ScanCount; i++)
-                    {
-                        if (i != 0)
+                        if (!await InputOneScan(-1))
                         {
-                            string status = string.Format(MiscResources.BatchStatusWaitingForScan, i + 1);
-                            if (!ThreadSleepWithCancel(TimeSpan.FromSeconds(Settings.ScanIntervalSeconds), TimeSpan.FromSeconds(1),
-                                () => ProgressCallback(status)))
+                            return;
+                        }
+                    }
+                    else if (Settings.ScanType == BatchScanType.MultipleWithDelay)
+                    {
+                        for (int i = 0; i < Settings.ScanCount; i++)
+                        {
+                            if (i != 0)
+                            {
+                                string status = string.Format(MiscResources.BatchStatusWaitingForScan, i + 1);
+                                if (!ThreadSleepWithCancel(TimeSpan.FromSeconds(Settings.ScanIntervalSeconds), TimeSpan.FromSeconds(1),
+                                    () => ProgressCallback(status)))
+                                {
+                                    return;
+                                }
+                            }
+
+                            if (!await InputOneScan(i))
+                            {
+                                return;
+                            }
+
+                            if (!ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 2)))
                             {
                                 return;
                             }
                         }
-                        if (!InputOneScan(i))
-                        {
-                            return;
-                        }
-                        if (!ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 2)))
-                        {
-                            return;
-                        }
                     }
-                }
-                else if (Settings.ScanType == BatchScanType.MultipleWithPrompt)
-                {
-                    int i = 0;
-                    do
+                    else if (Settings.ScanType == BatchScanType.MultipleWithPrompt)
                     {
-                        if (!InputOneScan(i++))
+                        int i = 0;
+                        do
                         {
-                            return;
-                        }
-                        if (!ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 1)))
-                        {
-                            return;
-                        }
-                    } while (PromptForNextScan());
-                }
+                            if (!await InputOneScan(i++))
+                            {
+                                return;
+                            }
+
+                            if (!ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 1)))
+                            {
+                                return;
+                            }
+                        } while (PromptForNextScan());
+                    }
+                }, TaskCreationOptions.LongRunning).Unwrap();
             }
 
             private bool ThreadSleepWithCancel(TimeSpan sleepDuration, TimeSpan cancelCheckInterval, Func<bool> cancelCheck)
@@ -183,7 +189,7 @@ namespace NAPS2.Scan.Batch
                 return true;
             }
 
-            private bool InputOneScan(int scanNumber)
+            private async Task<bool> InputOneScan(int scanNumber)
             {
                 var scan = new List<ScannedImage>();
                 int pageNumber = 1;
@@ -195,15 +201,7 @@ namespace NAPS2.Scan.Batch
                 }
                 try
                 {
-                    if (profile.DriverName == TwainScanDriver.DRIVER_NAME || profile.UseNativeUI)
-                    {
-                        // Apart from WIA with predefined settings, the actual scan needs to be done on the UI thread
-                        BatchForm.SafeInvoke(() => DoScan(scanNumber, scan, pageNumber));
-                    }
-                    else
-                    {
-                        DoScan(scanNumber, scan, pageNumber);
-                    }
+                    await DoScan(scanNumber, scan, pageNumber);
                 }
                 catch (OperationCanceledException)
                 {
@@ -219,9 +217,9 @@ namespace NAPS2.Scan.Batch
                 return true;
             }
 
-            private void DoScan(int scanNumber, List<ScannedImage> scan, int pageNumber)
+            private async Task DoScan(int scanNumber, List<ScannedImage> scan, int pageNumber)
             {
-                scanPerformer.PerformScan(profile, scanParams, BatchForm, null, image =>
+                await scanPerformer.PerformScan(profile, scanParams, BatchForm, null, image =>
                 {
                     scan.Add(image);
                     if (!ProgressCallback(scanNumber == -1
@@ -240,7 +238,7 @@ namespace NAPS2.Scan.Batch
                 return promptForm.ShowDialog() == DialogResult.OK;
             }
 
-            private void Output()
+            private async Task Output()
             {
                 ProgressCallback(MiscResources.BatchStatusSaving);
 
@@ -256,7 +254,7 @@ namespace NAPS2.Scan.Batch
                 }
                 else if (Settings.OutputType == BatchOutputType.SingleFile)
                 {
-                    Save(now, 0, allImages);
+                    await Save(now, 0, allImages);
                     foreach (var img in allImages)
                     {
                         img.Dispose();
@@ -267,7 +265,7 @@ namespace NAPS2.Scan.Batch
                     int i = 0;
                     foreach (var imageList in SaveSeparatorHelper.SeparateScans(scans, Settings.SaveSeparator))
                     {
-                        Save(now, i++, imageList);
+                        await Save(now, i++, imageList);
                         foreach (var img in imageList)
                         {
                             img.Dispose();
@@ -276,7 +274,7 @@ namespace NAPS2.Scan.Batch
                 }
             }
 
-            private void Save(DateTime now, int i, List<ScannedImage> images)
+            private async Task Save(DateTime now, int i, List<ScannedImage> images)
             {
                 if (images.Count == 0)
                 {
@@ -289,13 +287,21 @@ namespace NAPS2.Scan.Batch
                     {
                         subPath = fileNamePlaceholders.SubstitutePlaceholders(subPath, now, true, 0, 1);
                     }
-                    pdfExporter.Export(subPath, images, pdfSettingsContainer.PdfSettings, ocrDependencyManager.DefaultLanguageCode, j => true);
+                    var snapshots = images.Select(x => x.Preserve()).ToList();
+                    try
+                    {
+                        await pdfExporter.Export(subPath, snapshots, pdfSettingsContainer.PdfSettings, ocrManager.DefaultParams, (j, k) => { }, CancellationToken.None);
+                    }
+                    finally
+                    {
+                        snapshots.ForEach(s => s.Dispose());
+                    }
                 }
                 else
                 {
                     var op = operationFactory.Create<SaveImagesOperation>();
                     op.Start(subPath, now, images, true);
-                    op.WaitUntilFinished();
+                    await op.Success;
                 }
             }
 

@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using NAPS2.ImportExport;
 using NAPS2.Lang.Resources;
 using NAPS2.Operation;
-using NAPS2.Scan.Images;
 using NAPS2.Util;
 
 namespace NAPS2.WinForms
@@ -17,7 +13,7 @@ namespace NAPS2.WinForms
         private readonly IErrorOutput errorOutput;
 
         private volatile bool loaded;
-        private volatile bool finished;
+        private volatile bool background;
         private IOperation operation;
 
         public FProgress(IErrorOutput errorOutput)
@@ -41,16 +37,17 @@ namespace NAPS2.WinForms
             }
         }
 
-        public Func<bool> Start { get; set; }
-
         void operation_Error(object sender, OperationErrorEventArgs e)
         {
-            SafeInvoke(() => errorOutput.DisplayError(e.ErrorMessage, e.Exception));
+            if (!background)
+            {
+                SafeInvoke(() => errorOutput.DisplayError(e.ErrorMessage, e.Exception));
+            }
         }
 
         void operation_StatusChanged(object sender, EventArgs e)
         {
-            if (loaded)
+            if (loaded && !background)
             {
                 SafeInvoke(DisplayProgress);
             }
@@ -58,8 +55,7 @@ namespace NAPS2.WinForms
 
         void operation_Finished(object sender, EventArgs e)
         {
-            finished = true;
-            if (loaded)
+            if (loaded && !background)
             {
                 SafeInvoke(Close);
             }
@@ -70,29 +66,19 @@ namespace NAPS2.WinForms
             new LayoutManager(this)
                 .Bind(progressBar, labelStatus)
                     .WidthToForm()
-                .Bind(btnCancel)
+                .Bind(btnRunInBG, btnCancel)
                     .RightToForm()
                 .Activate();
 
             loaded = true;
             Text = operation.ProgressTitle;
+            btnRunInBG.Visible = operation.AllowBackground;
+            // TODO: Check i10n of button positions, here and in general
 
             DisplayProgress();
-            if (finished)
+            if (operation.IsFinished)
             {
                 Close();
-            }
-        }
-
-        private void FProgress_Shown(object sender, EventArgs e)
-        {
-            if (Start != null)
-            {
-                if (!Start())
-                {
-                    finished = true;
-                    Close();
-                }
             }
         }
 
@@ -109,15 +95,15 @@ namespace NAPS2.WinForms
             {
                 labelNumber.Text = "";
                 progressBar.Style = ProgressBarStyle.Continuous;
-                progressBar.Value = 0;
                 progressBar.Maximum = 1;
+                progressBar.Value = 0;
             }
             else
             {
                 labelNumber.Text = string.Format(MiscResources.ProgressFormat, status.CurrentProgress, status.MaxProgress);
                 progressBar.Style = ProgressBarStyle.Continuous;
-                progressBar.Value = status.CurrentProgress;
                 progressBar.Maximum = status.MaxProgress;
+                progressBar.Value = status.CurrentProgress;
             }
             // Force the progress bar to render immediately
             if (progressBar.Value < progressBar.Maximum)
@@ -134,7 +120,7 @@ namespace NAPS2.WinForms
 
         private void FDownloadProgress_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!finished)
+            if (!operation.IsFinished && !background)
             {
                 TryCancelOp();
                 e.Cancel = true;
@@ -148,6 +134,12 @@ namespace NAPS2.WinForms
                 Operation.Cancel();
                 btnCancel.Enabled = false;
             }
+        }
+
+        private void btnRunInBG_Click(object sender, EventArgs e)
+        {
+            background = true;
+            Hide();
         }
     }
 }

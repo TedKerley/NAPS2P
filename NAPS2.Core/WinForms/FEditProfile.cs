@@ -5,8 +5,10 @@ using System.Linq;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.Lang.Resources;
+using NAPS2.Platform;
 using NAPS2.Scan;
 using NAPS2.Scan.Exceptions;
+using NAPS2.Scan.Sane;
 using NAPS2.Scan.Twain;
 using NAPS2.Scan.Wia;
 using NAPS2.Util;
@@ -36,6 +38,7 @@ namespace NAPS2.WinForms
             this.profileNameTracker = profileNameTracker;
             this.appConfigManager = appConfigManager;
             InitializeComponent();
+
             AddEnumItems<ScanHorizontalAlign>(cmbAlign);
             AddEnumItems<ScanBitDepth>(cmbDepth);
             AddEnumItems<ScanDpi>(cmbResolution);
@@ -46,6 +49,10 @@ namespace NAPS2.WinForms
                 var item = (PageSizeListItem)e.ListItem;
                 e.Value = item.Label;
             };
+
+            rdWIA.Visible = PlatformCompat.System.IsWiaDriverSupported;
+            rdTWAIN.Visible = PlatformCompat.System.IsTwainDriverSupported;
+            rdSANE.Visible = PlatformCompat.System.IsSaneDriverSupported;
         }
 
         protected override void OnLoad(object sender, EventArgs e)
@@ -87,7 +94,7 @@ namespace NAPS2.WinForms
 
             linkAutoSaveSettings.Location = new Point(cbAutoSave.Right, linkAutoSaveSettings.Location.Y);
             new LayoutManager(this)
-                .Bind(txtName, txtDevice, panel1, panel2)
+                .Bind(txtName, txtDevice, panelUI, panel2)
                     .WidthToForm()
                 .Bind(pctIcon, btnChooseDevice, btnOK, btnCancel)
                     .RightToForm()
@@ -176,16 +183,26 @@ namespace NAPS2.WinForms
 
         private string DeviceDriverName
         {
-            get => rdTWAIN.Checked ? TwainScanDriver.DRIVER_NAME : WiaScanDriver.DRIVER_NAME;
+            get => rdTWAIN.Checked ? TwainScanDriver.DRIVER_NAME
+                 : rdSANE.Checked  ? SaneScanDriver.DRIVER_NAME
+                                   : WiaScanDriver.DRIVER_NAME;
             set
             {
                 if (value == TwainScanDriver.DRIVER_NAME)
                 {
                     rdTWAIN.Checked = true;
                 }
-                else
+                else if (value == SaneScanDriver.DRIVER_NAME)
+                {
+                    rdSANE.Checked = true;
+                }
+                else if (value == WiaScanDriver.DRIVER_NAME || PlatformCompat.System.IsWiaDriverSupported)
                 {
                     rdWIA.Checked = true;
+                }
+                else
+                {
+                    rdSANE.Checked = true;
                 }
             }
         }
@@ -335,7 +352,7 @@ namespace NAPS2.WinForms
                 bool settingsEnabled = !locked && rdbConfig.Checked;
 
                 txtName.Enabled = !locked;
-                rdWIA.Enabled = rdTWAIN.Enabled = !locked;
+                rdWIA.Enabled = rdTWAIN.Enabled = rdSANE.Enabled = !locked;
                 txtDevice.Enabled = !deviceLocked;
                 btnChooseDevice.Enabled = !deviceLocked;
                 rdbConfig.Enabled = rdbNative.Enabled = !locked;
@@ -356,13 +373,17 @@ namespace NAPS2.WinForms
 
                 btnAdvanced.Enabled = !locked;
 
+                ConditionalControls.UnlockHeight(this);
+                ConditionalControls.SetVisible(panelUI, DeviceDriverName != SaneScanDriver.DRIVER_NAME, 20);
+                ConditionalControls.LockHeight(this);
+
                 suppressChangeEvent = false;
             }
         }
 
-        private void rdWIA_CheckedChanged(object sender, EventArgs e)
+        private void rdDriver_CheckedChanged(object sender, EventArgs e)
         {
-            if (!suppressChangeEvent)
+            if (((RadioButton)sender).Checked && !suppressChangeEvent)
             {
                 ScanProfile.Device = null;
                 CurrentDevice = null;
@@ -372,8 +393,7 @@ namespace NAPS2.WinForms
 
         private void txtBrightness_TextChanged(object sender, EventArgs e)
         {
-            int value;
-            if (int.TryParse(txtBrightness.Text, out value))
+            if (int.TryParse(txtBrightness.Text, out int value))
             {
                 if (value >= trBrightness.Minimum && value <= trBrightness.Maximum)
                 {
@@ -389,8 +409,7 @@ namespace NAPS2.WinForms
 
         private void txtContrast_TextChanged(object sender, EventArgs e)
         {
-            int value;
-            if (int.TryParse(txtContrast.Text, out value))
+            if (int.TryParse(txtContrast.Text, out int value))
             {
                 if (value >= trContrast.Minimum && value <= trContrast.Maximum)
                 {

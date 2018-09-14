@@ -5,9 +5,12 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using NAPS2.ImportExport.Pdf;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Threading.Tasks;
 using NAPS2.Recovery;
 using NAPS2.Scan.Images.Transforms;
+using NAPS2.Util;
 
 namespace NAPS2.Scan.Images
 {
@@ -22,6 +25,11 @@ namespace NAPS2.Scan.Images
         private readonly List<Transform> transformList;
 
         private Bitmap thumbnail;
+        private int thumbnailState;
+        private int transformState;
+
+        private bool disposed;
+        private int snapshotCount;
 
         public static ScannedImage FromSinglePagePdf(string pdfPath, bool copy)
         {
@@ -30,8 +38,7 @@ namespace NAPS2.Scan.Images
 
         public ScannedImage(Bitmap img, ScanBitDepth bitDepth, bool highQuality, int quality)
         {
-            ImageFormat fileFormat;
-            string tempFilePath = ScannedImageHelper.SaveSmallestBitmap(img, bitDepth, highQuality, quality, out fileFormat);
+            string tempFilePath = ScannedImageHelper.SaveSmallestBitmap(img, bitDepth, highQuality, quality, out ImageFormat fileFormat);
 
             transformList = new List<Transform>();
             recoveryImage = RecoveryImage.CreateNew(fileFormat, bitDepth, highQuality, transformList);
@@ -78,6 +85,10 @@ namespace NAPS2.Scan.Images
         {
             lock (this)
             {
+                disposed = true;
+                // TODO: Does this work as intended? Since the recovery image isn't removed from the index
+                if (snapshotCount != 0) return;
+
                 // Delete the image data on disk
                 recoveryImage?.Dispose();
                 if (thumbnail != null)
@@ -85,56 +96,136 @@ namespace NAPS2.Scan.Images
                     thumbnail.Dispose();
                     thumbnail = null;
                 }
+
+                FullyDisposed?.Invoke(this, new EventArgs());
             }
         }
 
         public void AddTransform(Transform transform)
         {
-            lock (transformList)
+            lock (this)
             {
                 // Also updates the recovery index since they reference the same list
-                Transform.AddOrSimplify(transformList, transform);
+                if (!Transform.AddOrSimplify(transformList, transform))
+                {
+                    return;
+                }
+                transformState++;
             }
             recoveryImage.Save();
+            ThumbnailInvalidated?.Invoke(this, new EventArgs());
         }
 
         public void ResetTransforms()
         {
-            lock (transformList)
+            lock (this)
             {
+                if (transformList.Count == 0)
+                {
+                    return;
+                }
                 transformList.Clear();
+                transformState++;
             }
             recoveryImage.Save();
+            ThumbnailInvalidated?.Invoke(this, new EventArgs());
         }
 
-        public Bitmap GetThumbnail(ThumbnailRenderer thumbnailRenderer)
+        public Bitmap GetThumbnail()
         {
-            if (thumbnail == null)
+            lock (this)
             {
-                if (thumbnailRenderer == null)
-                {
-                    return null;
-                }
-                thumbnail = thumbnailRenderer.RenderThumbnail(this);
+                return (Bitmap) thumbnail?.Clone();
             }
-            Debug.Assert(thumbnail != null);
-            return (Bitmap)thumbnail.Clone();
         }
 
-        public object GetThumbnailState()
+        public void SetThumbnail(Bitmap bitmap, int? state = null)
         {
-            return thumbnail;
+            lock (this)
+            {
+                thumbnail?.Dispose();
+                thumbnail = bitmap;
+                thumbnailState = state ?? transformState;
+            }
+            ThumbnailChanged?.Invoke(this, new EventArgs());
         }
 
-        public void SetThumbnail(Bitmap bitmap)
-        {
-            thumbnail?.Dispose();
-            thumbnail = bitmap;
-        }
+        public bool IsThumbnailDirty => thumbnailState != transformState;
+
+        public EventHandler ThumbnailChanged;
+
+        public EventHandler ThumbnailInvalidated;
+
+        public EventHandler FullyDisposed;
 
         public void MovedTo(int index)
         {
             recoveryImage.Move(index);
+        }
+
+        public Snapshot Preserve() => new Snapshot(this);
+
+        [Serializable]
+        [KnownType("KnownTypes")]
+        public class Snapshot : IDisposable, ISerializable
+        {
+            private bool disposed;
+
+            internal Snapshot(ScannedImage source)
+            {
+                lock (source)
+                {
+                    if (source.disposed)
+                    {
+                        throw new ObjectDisposedException("source");
+                    }
+                    source.snapshotCount++;
+                    Source = source;
+                    TransformList = source.transformList.ToList();
+                    TransformState = source.transformState;
+                }
+            }
+
+            public ScannedImage Source { get; }
+
+            public List<Transform> TransformList { get; }
+
+            public int TransformState { get; }
+
+            public void Dispose()
+            {
+                if (disposed) return;
+                lock (Source)
+                {
+                    disposed = true;
+                    Source.snapshotCount--;
+                    if (Source.disposed && Source.snapshotCount == 0)
+                    {
+                        Source.Dispose();
+                    }
+                }
+            }
+
+            public void GetObjectData(SerializationInfo info, StreamingContext context)
+            {
+                info.AddValue("RecoveryIndexImage", Source.RecoveryIndexImage);
+                info.AddValue("TransformList", TransformList);
+                info.AddValue("TransformState", TransformState);
+            }
+
+            private Snapshot(SerializationInfo info, StreamingContext context)
+            {
+                Source = new ScannedImage((RecoveryIndexImage)info.GetValue("RecoveryIndexImage", typeof(RecoveryIndexImage)));
+                TransformList = (List<Transform>)info.GetValue("TransformList", typeof(List<Transform>));
+                TransformState = (int)info.GetValue("TransformState", typeof(int));
+            }
+
+            // ReSharper disable once UnusedMember.Local
+            private static Type[] KnownTypes()
+            {
+                var transformTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsSubclassOf(typeof(Transform)));
+                return transformTypes.Concat(new[] { typeof(List<Transform>), typeof(RecoveryIndexImage) }).ToArray();
+            }
         }
     }
 }

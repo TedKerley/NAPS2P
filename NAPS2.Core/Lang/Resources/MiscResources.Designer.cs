@@ -61,6 +61,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Operation in Progress.
+        /// </summary>
+        internal static string ActiveOperations {
+            get {
+                return ResourceManager.GetString("ActiveOperations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to All ({0}).
         /// </summary>
         internal static string AllCount {
@@ -457,6 +466,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The selected driver is not supported on this system..
+        /// </summary>
+        internal static string DriverNotSupported {
+            get {
+                return ResourceManager.GetString("DriverNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to An error occurred while trying to send an email..
         /// </summary>
         internal static string EmailError {
@@ -507,6 +525,15 @@ namespace NAPS2.Lang.Resources {
         internal static string EstimatedDownloadSize {
             get {
                 return ResourceManager.GetString("EstimatedDownloadSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An operation is in progress. Are you sure you want to exit and cancel the operation?.
+        /// </summary>
+        internal static string ExitWithActiveOperations {
+            get {
+                return ResourceManager.GetString("ExitWithActiveOperations", resourceCulture);
             }
         }
         
@@ -817,6 +844,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to OCR Progress.
+        /// </summary>
+        internal static string OcrProgress {
+            get {
+                return ResourceManager.GetString("OcrProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to An update to OCR is available..
         /// </summary>
         internal static string OcrUpdateAvailable {
@@ -916,6 +952,24 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Running OCR....
+        /// </summary>
+        internal static string RunningOcr {
+            get {
+                return ResourceManager.GetString("RunningOcr", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The SANE driver is not available. Make sure to install the required packages:.
+        /// </summary>
+        internal static string SaneNotAvailable {
+            get {
+                return ResourceManager.GetString("SaneNotAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Save Images Progress.
         /// </summary>
         internal static string SaveImagesProgress {
@@ -993,6 +1047,15 @@ namespace NAPS2.Lang.Resources {
         internal static string SizeProgress {
             get {
                 return ResourceManager.GetString("SizeProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The OCR engine is not available. Make sure to install the required package:.
+        /// </summary>
+        internal static string TesseractNotAvailable {
+            get {
+                return ResourceManager.GetString("TesseractNotAvailable", resourceCulture);
             }
         }
         

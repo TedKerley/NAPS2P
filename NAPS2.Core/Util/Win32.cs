@@ -2,17 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace NAPS2.Util
 {
+    /// <summary>
+    /// Helper class for common Win32 methods called via P/Invoke.
+    /// </summary>
     public static class Win32
     {
-        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
-        public static extern int StrCmpLogicalW(string psz1, string psz2);
-
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern int GetScrollPos(IntPtr hWnd, System.Windows.Forms.Orientation nBar);
+
+        [DllImport("user32.dll")]
+        public static extern int SetScrollPos(IntPtr hWnd, System.Windows.Forms.Orientation nBar, int nPos, bool bRedraw);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -25,6 +30,12 @@ namespace NAPS2.Util
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetDllDirectory(string lpPathName);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr LoadLibrary(string path);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr GetProcAddress(IntPtr module, string procName);
 
         public enum ShowWindowCommands
         {

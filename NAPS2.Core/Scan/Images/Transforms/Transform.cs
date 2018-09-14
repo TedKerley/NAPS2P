@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.Serialization;
+using System.Reflection;
 using System.Xml.Serialization;
+using NAPS2.Util;
 
 namespace NAPS2.Scan.Images.Transforms
 {
@@ -25,8 +26,12 @@ namespace NAPS2.Scan.Images.Transforms
             return transforms.Aggregate(bitmap, (current, t) => t.Perform(current));
         }
 
-        public static void AddOrSimplify(IList<Transform> transformList, Transform transform)
+        public static bool AddOrSimplify(IList<Transform> transformList, Transform transform)
         {
+            if (transform.IsNull)
+            {
+                return false;
+            }
             var last = transformList.LastOrDefault();
             if (transform.CanSimplify(last))
             {
@@ -40,10 +45,11 @@ namespace NAPS2.Scan.Images.Transforms
                     transformList[transformList.Count - 1] = transform.Simplify(last);
                 }
             }
-            else if (!transform.IsNull)
+            else
             {
                 transformList.Add(transform);
             }
+            return true;
         }
 
         /// <summary>
@@ -56,7 +62,7 @@ namespace NAPS2.Scan.Images.Transforms
             {
                 // Copy B&W over to grayscale
                 var bitmap2 = new Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format24bppRgb);
-                bitmap2.SetResolution(bitmap.HorizontalResolution, bitmap.VerticalResolution);
+                bitmap2.SafeSetResolution(bitmap.HorizontalResolution, bitmap.VerticalResolution);
                 using (var g = Graphics.FromImage(bitmap2))
                 {
                     g.DrawImage(bitmap, 0, 0);
@@ -95,10 +101,7 @@ namespace NAPS2.Scan.Images.Transforms
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public virtual bool CanSimplify(Transform other)
-        {
-            return false;
-        }
+        public virtual bool CanSimplify(Transform other) => false;
 
         /// <summary>
         /// Combines this transform with a previous transform to form a single new transform.

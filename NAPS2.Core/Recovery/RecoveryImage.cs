@@ -5,7 +5,6 @@ using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using NAPS2.Scan;
 using NAPS2.Scan.Images;
 using NAPS2.Scan.Images.Transforms;
@@ -16,6 +15,7 @@ namespace NAPS2.Recovery
     public class RecoveryImage : IDisposable
     {
         public const string LOCK_FILE_NAME = ".lock";
+        private static readonly string RecoveryFolderPath = Path.Combine(Paths.Recovery, Path.GetRandomFileName());
 
         private static DirectoryInfo _recoveryFolder;
         private static FileInfo _recoveryLockFile;
@@ -23,6 +23,21 @@ namespace NAPS2.Recovery
         private static RecoveryIndexManager _recoveryIndexManager;
 
         private static int _recoveryFileNumber = 1;
+        private static readonly object RecoveryFileNumberLock = new object();
+
+        private static readonly DeferredAction DeferredSave = new DeferredAction(() =>
+        {
+            if (_recoveryIndexManager != null)
+            {
+                lock (_recoveryIndexManager)
+                {
+                    if (_recoveryFolder != null)
+                    {
+                        _recoveryIndexManager.Save();
+                    }
+                }
+            }
+        });
 
         public static bool DisableRecoveryCleanup { get; set; }
 
@@ -33,7 +48,7 @@ namespace NAPS2.Recovery
                 if (_recoveryFolder == null)
                 {
                     // Automatically create a recovery folder owned by this process
-                    _recoveryFolder = new DirectoryInfo(Path.Combine(Paths.Recovery, Path.GetRandomFileName()));
+                    _recoveryFolder = new DirectoryInfo(RecoveryFolderPath);
                     _recoveryFolder.Create();
                     _recoveryLockFile = new FileInfo(Path.Combine(_recoveryFolder.FullName, LOCK_FILE_NAME));
                     _recoveryLock = _recoveryLockFile.Open(FileMode.CreateNew, FileAccess.Write, FileShare.None);
@@ -53,10 +68,9 @@ namespace NAPS2.Recovery
             }
         }
 
-        public static int RecoveryFileNumber
+        public static IDisposable DeferSave()
         {
-            get => _recoveryFileNumber;
-            set => _recoveryFileNumber = value;
+            return DeferredSave.Defer();
         }
 
         public static RecoveryImage CreateNew(ImageFormat fileFormat, ScanBitDepth bitDepth, bool highQuality, List<Transform> transformList)
@@ -73,9 +87,21 @@ namespace NAPS2.Recovery
         {
             if (_recoveryIndexManager != null)
             {
-                _recoveryIndexManager.Index.Images.RemoveAll();
-                _recoveryIndexManager.Index.Images.AddRange(images.Select(x => x.RecoveryIndexImage));
-                _recoveryIndexManager.Save();
+                lock (_recoveryIndexManager)
+                {
+                    _recoveryIndexManager.Index.Images.Clear();
+                    _recoveryIndexManager.Index.Images.AddRange(images.Select(x => x.RecoveryIndexImage));
+                    _recoveryIndexManager.Save();
+                }
+            }
+        }
+
+        private static string GetNextFileName()
+        {
+            lock (RecoveryFileNumberLock)
+            {
+                // Use an incrementing number + the process ID to ensure uniqueness
+                return $"{Process.GetCurrentProcess().Id}_{(_recoveryFileNumber++).ToString("D5", CultureInfo.InvariantCulture)}";
             }
         }
 
@@ -102,7 +128,7 @@ namespace NAPS2.Recovery
         private RecoveryImage(ImageFormat fileFormat, ScanBitDepth bitDepth, bool highQuality, List<Transform> transformList)
         {
             FileFormat = fileFormat;
-            FileName = (_recoveryFileNumber++).ToString("D5", CultureInfo.InvariantCulture) + GetExtension(FileFormat);
+            FileName = GetNextFileName() + GetExtension(FileFormat);
             FilePath = Path.Combine(RecoveryFolder.FullName, FileName);
             IndexImage = new RecoveryIndexImage
             {
@@ -115,15 +141,16 @@ namespace NAPS2.Recovery
 
         private RecoveryImage(RecoveryIndexImage recoveryIndexImage)
         {
-            if (_recoveryIndexManager.Index.Images.Contains(recoveryIndexImage))
+            if (_recoveryIndexManager != null && _recoveryIndexManager.Index.Images.Contains(recoveryIndexImage))
             {
                 throw new ArgumentException("Recovery image already exists in index");
             }
 
             string ext = Path.GetExtension(recoveryIndexImage.FileName);
-            FileFormat = ".png".Equals(ext, StringComparison.InvariantCultureIgnoreCase) ? ImageFormat.Png : ImageFormat.Jpeg;
+            FileFormat = ".png".Equals(ext, StringComparison.InvariantCultureIgnoreCase) ? ImageFormat.Png
+                : ".pdf".Equals(ext, StringComparison.InvariantCultureIgnoreCase) ? null
+                : ImageFormat.Jpeg;
             FileName = recoveryIndexImage.FileName;
-            _recoveryFileNumber++;
             FilePath = Path.Combine(RecoveryFolder.FullName, FileName);
             IndexImage = recoveryIndexImage;
             Save();
@@ -163,9 +190,12 @@ namespace NAPS2.Recovery
             {
                 throw new InvalidOperationException();
             }
-            _recoveryIndexManager.Index.Images.Remove(IndexImage);
-            _recoveryIndexManager.Index.Images.Insert(index, IndexImage);
-            _recoveryIndexManager.Save();
+            lock (_recoveryIndexManager)
+            {
+                _recoveryIndexManager.Index.Images.Remove(IndexImage);
+                _recoveryIndexManager.Index.Images.Insert(index, IndexImage);
+                _recoveryIndexManager.Save();
+            }
         }
 
         public void Dispose()
@@ -175,8 +205,14 @@ namespace NAPS2.Recovery
                 if (_recoveryIndexManager != null && !DisableRecoveryCleanup && File.Exists(FilePath))
                 {
                     File.Delete(FilePath);
-                    _recoveryIndexManager.Index.Images.Remove(IndexImage);
-                    _recoveryIndexManager.Save();
+                    lock (_recoveryIndexManager)
+                    {
+                        _recoveryIndexManager.Index.Images.Remove(IndexImage);
+                        if (!DeferredSave.IsDeferred)
+                        {
+                            _recoveryIndexManager.Save();
+                        }
+                    }
                     if (_recoveryIndexManager.Index.Images.Count == 0)
                     {
                         _recoveryLock.Dispose();

@@ -1,5 +1,13 @@
+// Since WIA is a COM reference, it can't be compiled on other platforms (i.e. Linux).
+// In the NAPS2.Core.csproj file, WIA is defined as a conditional reference.
+// WiaApi.mono.cs and WiaState.mono.cs contain placeholder implementations that don't depend on WIA.
+// This setup lets NAPS2 compile on multiple platforms without changing any code that doesn't directly touch WIA.
+// WIA-related NAPS2 code is never run on non-Windows platforms due to PlatformCompat checks.
+#if !NONWINDOWS
+
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using NAPS2.Lang.Resources;
@@ -181,9 +189,9 @@ namespace NAPS2.Scan.Wia
             {
                 throw error;
             }
-            if (error is COMException)
+            if (error is COMException comError)
             {
-                ThrowDeviceError((COMException)error);
+                ThrowDeviceError(comError);
             }
             throw new ScanDriverUnknownException(error);
         }
@@ -472,5 +480,19 @@ namespace NAPS2.Scan.Wia
         }
 
         #endregion
+
+        #region Scanning
+
+        public static Stream Transfer(WiaState wia, string format, bool showGui)
+        {
+            var imageFile = showGui
+                ? (ImageFile)new CommonDialogClass().ShowTransfer(wia.Item, format)
+                : (ImageFile)wia.Item?.Transfer(format);
+            return new MemoryStream((byte[])imageFile.FileData.get_BinaryData());
+        }
+
+        #endregion
     }
 }
+        
+#endif

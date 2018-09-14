@@ -89,12 +89,12 @@ namespace NAPS2.Scan.Images.Transforms
             if (Angle > 45.0 && Angle < 135.0 || Angle > 225.0 && Angle < 315.0)
             {
                 result = new Bitmap(bitmap.Height, bitmap.Width);
-                result.SetResolution(bitmap.VerticalResolution, bitmap.HorizontalResolution);
+                result.SafeSetResolution(bitmap.VerticalResolution, bitmap.HorizontalResolution);
             }
             else
             {
                 result = new Bitmap(bitmap.Width, bitmap.Height);
-                result.SetResolution(bitmap.HorizontalResolution, bitmap.VerticalResolution);
+                result.SafeSetResolution(bitmap.HorizontalResolution, bitmap.VerticalResolution);
             }
             using (var g = Graphics.FromImage(result))
             {
@@ -109,10 +109,7 @@ namespace NAPS2.Scan.Images.Transforms
             return result;
         }
 
-        public override bool CanSimplify(Transform other)
-        {
-            return other is RotationTransform;
-        }
+        public override bool CanSimplify(Transform other) => other is RotationTransform;
 
         public override Transform Simplify(Transform other)
         {

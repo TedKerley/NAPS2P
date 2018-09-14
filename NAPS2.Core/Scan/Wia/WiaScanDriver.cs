@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using NAPS2.Config;
+using System.Threading.Tasks;
+using NAPS2.Platform;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
@@ -20,16 +20,14 @@ namespace NAPS2.Scan.Wia
 
         private readonly IWiaTransfer backgroundWiaTransfer;
         private readonly IWiaTransfer foregroundWiaTransfer;
-        private readonly ThreadFactory threadFactory;
         private readonly IBlankDetector blankDetector;
         private readonly ThumbnailRenderer thumbnailRenderer;
         private readonly ScannedImageHelper scannedImageHelper;
 
-        public WiaScanDriver(BackgroundWiaTransfer backgroundWiaTransfer, ForegroundWiaTransfer foregroundWiaTransfer, ThreadFactory threadFactory, IBlankDetector blankDetector, ThumbnailRenderer thumbnailRenderer, ScannedImageHelper scannedImageHelper)
+        public WiaScanDriver(BackgroundWiaTransfer backgroundWiaTransfer, ForegroundWiaTransfer foregroundWiaTransfer, IBlankDetector blankDetector, ThumbnailRenderer thumbnailRenderer, ScannedImageHelper scannedImageHelper)
         {
             this.backgroundWiaTransfer = backgroundWiaTransfer;
             this.foregroundWiaTransfer = foregroundWiaTransfer;
-            this.threadFactory = threadFactory;
             this.blankDetector = blankDetector;
             this.thumbnailRenderer = thumbnailRenderer;
             this.scannedImageHelper = scannedImageHelper;
@@ -37,17 +35,13 @@ namespace NAPS2.Scan.Wia
 
         public override string DriverName => DRIVER_NAME;
 
-        protected override ScanDevice PromptForDeviceInternal()
-        {
-            return WiaApi.PromptForScanDevice();
-        }
+        public override bool IsSupported => PlatformCompat.System.IsWiaDriverSupported;
 
-        protected override List<ScanDevice> GetDeviceListInternal()
-        {
-            return WiaApi.GetScanDeviceList();
-        }
+        protected override ScanDevice PromptForDeviceInternal() => WiaApi.PromptForScanDevice();
 
-        protected override IEnumerable<ScannedImage> ScanInternal()
+        protected override List<ScanDevice> GetDeviceListInternal() => WiaApi.GetScanDeviceList();
+
+        protected override async Task ScanInternal(ScannedImageSource.Concrete source)
         {
             using (var eventLoop = new WiaBackgroundEventLoop(ScanProfile, ScanDevice, threadFactory, ScanParams))
             {
@@ -75,15 +69,15 @@ namespace NAPS2.Scan.Wia
                             int delay = (int) (ScanProfile.WiaDelayBetweenScansSeconds.Clamp(0, 30) * 1000);
                             Thread.Sleep(delay);
                         }
-                        image = TransferImage(eventLoop, pageNumber, out cancel);
+                        (image, cancel) = await TransferImage(eventLoop, pageNumber);
                         pageNumber++;
                         retryCount = 0;
                         retry = false;
                     }
                     catch (ScanDriverException e)
                     {
-                        if (ScanProfile.WiaRetryOnFailure && e.InnerException is COMException 
-                            && (uint)((COMException) e.InnerException).ErrorCode == 0x80004005 && retryCount < MAX_RETRIES)
+                        if (ScanProfile.WiaRetryOnFailure && e.InnerException is COMException comError 
+                            && (uint)comError.ErrorCode == 0x80004005 && retryCount < MAX_RETRIES)
                         {
                             Thread.Sleep(1000);
                             retryCount += 1;
@@ -92,68 +86,59 @@ namespace NAPS2.Scan.Wia
                         }
                         throw;
                     }
-                    catch (Exception e)
-                    {
-                        throw new ScanDriverUnknownException(e);
-                    }
                     if (image != null)
                     {
-                        yield return image;
+                        source.Put(image);
                     }
                 } while (retry || (!cancel && ScanProfile.PaperSource != ScanSource.Glass));
             }
         }
 
-        private ScannedImage TransferImage(WiaBackgroundEventLoop eventLoop, int pageNumber, out bool cancel)
+        private async Task<(ScannedImage, bool)> TransferImage(WiaBackgroundEventLoop eventLoop, int pageNumber)
         {
-            try
+            return await Task.Factory.StartNew(() =>
             {
-                var transfer = ScanParams.NoUI ? backgroundWiaTransfer : foregroundWiaTransfer;
-                ChaosMonkey.MaybeError(0, new COMException("Fail", -2147467259));
-                using (var stream = transfer.Transfer(pageNumber, eventLoop, WiaApi.Formats.BMP))
+                try
                 {
-                    if (stream == null)
+                    var transfer = ScanParams.NoUI ? backgroundWiaTransfer : foregroundWiaTransfer;
+                    ChaosMonkey.MaybeError(0, new COMException("Fail", -2147467259));
+                    using (var stream = transfer.Transfer(pageNumber, eventLoop, DialogParent, WiaApi.Formats.BMP))
                     {
-                        cancel = true;
-                        return null;
-                    }
-                    cancel = false;
-                    using (Image output = Image.FromStream(stream))
-                    {
-                        using (var result = scannedImageHelper.PostProcessStep1(output, ScanProfile))
+                        if (stream == null)
                         {
-                            if (blankDetector.ExcludePage(result, ScanProfile))
+                            return (null, true);
+                        }
+
+                        using (Image output = Image.FromStream(stream))
+                        {
+                            using (var result = scannedImageHelper.PostProcessStep1(output, ScanProfile))
                             {
-                                return null;
+                                if (blankDetector.ExcludePage(result, ScanProfile))
+                                {
+                                    return (null, false);
+                                }
+
+                                ScanBitDepth bitDepth = ScanProfile.UseNativeUI ? ScanBitDepth.C24Bit : ScanProfile.BitDepth;
+                                var image = new ScannedImage(result, bitDepth, ScanProfile.MaxQuality, ScanProfile.Quality);
+                                image.SetThumbnail(thumbnailRenderer.RenderThumbnail(result));
+                                scannedImageHelper.PostProcessStep2(image, result, ScanProfile, ScanParams, pageNumber);
+                                return (image, false);
                             }
-                            ScanBitDepth bitDepth = ScanProfile.UseNativeUI ? ScanBitDepth.C24Bit : ScanProfile.BitDepth;
-                            var image = new ScannedImage(result, bitDepth, ScanProfile.MaxQuality, ScanProfile.Quality);
-                            image.SetThumbnail(thumbnailRenderer.RenderThumbnail(result));
-                            scannedImageHelper.PostProcessStep2(image, result, ScanProfile, ScanParams, pageNumber);
-                            return image;
                         }
                     }
                 }
-            }
-            catch (NoPagesException)
-            {
-                if (ScanProfile.PaperSource != ScanSource.Glass && pageNumber == 1)
+                catch (NoPagesException)
                 {
-                    // No pages were in the feeder, so show the user an error
-                    throw new NoPagesException();
+                    if (ScanProfile.PaperSource != ScanSource.Glass && pageNumber == 1)
+                    {
+                        // No pages were in the feeder, so show the user an error
+                        throw new NoPagesException();
+                    }
+
+                    // At least one page was scanned but now the feeder is empty, so exit normally
+                    return (null, true);
                 }
-                // At least one page was scanned but now the feeder is empty, so exit normally
-                cancel = true;
-                return null;
-            }
-            catch (ScanDriverException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new ScanDriverUnknownException(e);
-            }
+            }, TaskCreationOptions.LongRunning);
         }
     }
 }

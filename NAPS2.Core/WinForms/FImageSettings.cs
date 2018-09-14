@@ -6,7 +6,6 @@ using System.Linq;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.ImportExport.Images;
-using NAPS2.Lang.Resources;
 
 namespace NAPS2.WinForms
 {
@@ -96,8 +95,7 @@ namespace NAPS2.WinForms
 
         private void txtJpegQuality_TextChanged(object sender, EventArgs e)
         {
-            int value;
-            if (int.TryParse(txtJpegQuality.Text, out value))
+            if (int.TryParse(txtJpegQuality.Text, out int value))
             {
                 if (value >= tbJpegQuality.Minimum && value <= tbJpegQuality.Maximum)
                 {
@@ -118,8 +116,7 @@ namespace NAPS2.WinForms
 
         private void btnChooseFolder_Click(object sender, EventArgs e)
         {
-            string savePath;
-            if (dialogHelper.PromptToSaveImage(txtDefaultFilePath.Text, out savePath))
+            if (dialogHelper.PromptToSaveImage(txtDefaultFilePath.Text, out string savePath))
             {
                 txtDefaultFilePath.Text = savePath;
             }

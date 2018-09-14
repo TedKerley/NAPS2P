@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace NAPS2.Scan
 {
+    /// <summary>
+    /// Scan configuration that is separate from the user profile.
+    /// This lets scans behave a bit differently in the Batch Scan window, NAPS2.Console, etc.
+    /// </summary>
     using NAPS2.Scan.Wia;
 
     public class ScanParams
@@ -14,6 +17,8 @@ namespace NAPS2.Scan
         public bool NoUI { get; set; }
 
         public bool NoAutoSave { get; set; }
+
+        public bool? DoOcr { get; set; }
 
         public Offset Offsets { get; set; }
     }

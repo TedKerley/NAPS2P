@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
-using NAPS2.Scan.Exceptions;
 using NAPS2.Util;
 
 namespace NAPS2.Scan.Wia
@@ -30,17 +28,17 @@ namespace NAPS2.Scan.Wia
             this.scanDevice = scanDevice;
             this.scanParams = scanParams;
 
-            thread = threadFactory.CreateThread(RunEventLoop);
+            thread = new Thread(RunEventLoop);
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             // Wait for the thread to initialize the background form and event loop
             initWaiter.WaitOne();
         }
 
-        public void DoSync(Action<WiaState> action)
+        public void DoSync(Action<WiaState> action, Form invokeForm)
         {
             Exception error = null;
-            form.Invoke(new Action(() =>
+            (invokeForm ?? form).Invoke(new Action(() =>
             {
                 try
                 {
@@ -61,13 +59,13 @@ namespace NAPS2.Scan.Wia
             }
         }
 
-        public T GetSync<T>(Func<WiaState, T> action)
+        public T GetSync<T>(Func<WiaState, T> action, Form invokeForm = null)
         {
-            T value = default(T);
+            T value = default;
             DoSync(wia =>
             {
                 value = action(wia);
-            });
+            }, invokeForm);
             return value;
         }
 

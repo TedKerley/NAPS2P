@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.InteropServices;
-using NAPS2.Unsafe;
 
 namespace NAPS2.Scan.Images.Transforms
 {
@@ -15,16 +13,7 @@ namespace NAPS2.Scan.Images.Transforms
 
         public override Bitmap Perform(Bitmap bitmap)
         {
-            int bytesPerPixel;
-            if (bitmap.PixelFormat == PixelFormat.Format24bppRgb)
-            {
-                bytesPerPixel = 3;
-            }
-            else if (bitmap.PixelFormat == PixelFormat.Format32bppArgb)
-            {
-                bytesPerPixel = 4;
-            }
-            else
+            if (bitmap.PixelFormat != PixelFormat.Format24bppRgb && bitmap.PixelFormat != PixelFormat.Format32bppArgb)
             {
                 // No need to handle 1bpp since hue shifts are null transforms
                 return bitmap;
@@ -36,15 +25,12 @@ namespace NAPS2.Scan.Images.Transforms
                 hueShiftAdjusted += 360;
             }
 
-            UnsafeImageOps.HueShift(bitmap, bytesPerPixel, hueShiftAdjusted);
+            UnsafeImageOps.HueShift(bitmap, hueShiftAdjusted);
             
             return bitmap;
         }
 
-        public override bool CanSimplify(Transform other)
-        {
-            return other is HueTransform;
-        }
+        public override bool CanSimplify(Transform other) => other is HueTransform;
 
         public override Transform Simplify(Transform other)
         {

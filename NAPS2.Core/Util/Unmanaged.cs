@@ -5,23 +5,25 @@ using System.Runtime.InteropServices;
 
 namespace NAPS2.Util
 {
+    /// <summary>
+    /// Helper class for converting structures to unmanaged objects addressed by IntPtr.
+    /// Use the IDisposable pattern to clean up resources.
+    /// </summary>
     public static class Unmanaged
     {
-        public static Unmanaged<T> CopyOf<T>(T value)
-        {
-            return new Unmanaged<T>(value);
-        }
+        public static Unmanaged<T> CopyOf<T>(T value) => new Unmanaged<T>(value);
 
-        public static UnmanagedArray<T> CopyOf<T>(T[] value)
-        {
-            return new UnmanagedArray<T>(value);
-        }
+        public static UnmanagedArray<T> CopyOf<T>(T[] value) => new UnmanagedArray<T>(value);
     }
 
+    /// <summary>
+    /// Class for implicitly converting structures to unmanaged objects addressed by IntPtr.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class Unmanaged<T> : UnmanagedBase<T>
     {
         public Unmanaged()
-            : this(default(T))
+            : this(default)
         {
         }
 
@@ -40,7 +42,7 @@ namespace NAPS2.Util
             if (Pointer == IntPtr.Zero)
             {
                 // T must be a reference type, so this returns null
-                return default(T);
+                return default;
             }
             return (T)Marshal.PtrToStructure(Pointer, typeof(T));
         }

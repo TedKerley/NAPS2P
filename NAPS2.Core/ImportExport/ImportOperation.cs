@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using NAPS2.Lang.Resources;
 using NAPS2.Operation;
 using NAPS2.Scan.Images;
@@ -15,18 +12,14 @@ namespace NAPS2.ImportExport
     public class ImportOperation : OperationBase
     {
         private readonly IScannedImageImporter scannedImageImporter;
-        private readonly ThreadFactory threadFactory;
 
-        private bool cancel;
-        private Thread thread;
-
-        public ImportOperation(IScannedImageImporter scannedImageImporter, ThreadFactory threadFactory)
+        public ImportOperation(IScannedImageImporter scannedImageImporter)
         {
             this.scannedImageImporter = scannedImageImporter;
-            this.threadFactory = threadFactory;
 
             ProgressTitle = MiscResources.ImportProgress;
             AllowCancel = true;
+            AllowBackground = true;
         }
 
         public bool Start(List<string> filesToImport, Action<ScannedImage> imageCallback)
@@ -36,62 +29,39 @@ namespace NAPS2.ImportExport
             {
                 MaxProgress = oneFile ? 0 : filesToImport.Count
             };
-            cancel = false;
 
-            thread = threadFactory.StartThread(() =>
-            {
-                Run(filesToImport, imageCallback, oneFile);
-                GC.Collect();
-                InvokeFinished();
-            });
-            return true;
-        }
-
-        private void Run(IEnumerable<string> filesToImport, Action<ScannedImage> imageCallback, bool oneFile)
-        {
-            foreach (var fileName in filesToImport)
+            RunAsync(async () =>
             {
                 try
                 {
-                    Status.StatusText = string.Format(MiscResources.ImportingFormat, Path.GetFileName(fileName));
-                    InvokeStatusChanged();
-                    var images = scannedImageImporter.Import(fileName, new ImportParams(), (i, j) =>
+                    foreach (var fileName in filesToImport)
                     {
-                        if (oneFile)
+                        try
                         {
-                            Status.CurrentProgress = i;
-                            Status.MaxProgress = j;
+                            Status.StatusText = string.Format(MiscResources.ImportingFormat, Path.GetFileName(fileName));
+                            InvokeStatusChanged();
+                            var imageSrc = scannedImageImporter.Import(fileName, new ImportParams(), oneFile ? OnProgress : new ProgressHandler((j, k) => { }), CancelToken);
+                            await imageSrc.ForEach(imageCallback);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.ErrorException(string.Format(MiscResources.ImportErrorCouldNot, Path.GetFileName(fileName)), ex);
+                            InvokeError(string.Format(MiscResources.ImportErrorCouldNot, Path.GetFileName(fileName)), ex);
+                        }
+                        if (!oneFile)
+                        {
+                            Status.CurrentProgress++;
                             InvokeStatusChanged();
                         }
-                        return !cancel;
-                    });
-                    foreach (var img in images)
-                    {
-                        imageCallback(img);
                     }
+                    return true;
                 }
-                catch (Exception ex)
+                finally
                 {
-                    Log.ErrorException(string.Format(MiscResources.ImportErrorCouldNot, Path.GetFileName(fileName)), ex);
-                    InvokeError(string.Format(MiscResources.ImportErrorCouldNot, Path.GetFileName(fileName)), ex);
+                    GC.Collect();
                 }
-                if (!oneFile)
-                {
-                    Status.CurrentProgress++;
-                    InvokeStatusChanged();
-                }
-            }
-            Status.Success = true;
-        }
-
-        public override void WaitUntilFinished()
-        {
-            thread.Join();
-        }
-
-        public override void Cancel()
-        {
-            cancel = true;
+            });
+            return true;
         }
     }
 }

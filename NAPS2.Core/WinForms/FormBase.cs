@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.Scan;
@@ -95,6 +96,20 @@ namespace NAPS2.WinForms
             try
             {
                 Invoke(action);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        public void SafeInvokeAsync(Action action)
+        {
+            try
+            {
+                BeginInvoke(action);
             }
             catch (ObjectDisposedException)
             {

@@ -10,10 +10,15 @@ namespace NAPS2.Scan
     using NAPS2.Scan.Wia;
 
     /// <summary>
-    /// An interface for document scanning drivers (e.g. WIA, TWAIN).
+    /// An interface for document scanning drivers (WIA, TWAIN, SANE).
     /// </summary>
     public interface IScanDriver
     {
+        /// <summary>
+        /// Gets a value indicating whether the driver is supported on the current platform.
+        /// </summary>
+        bool IsSupported { get; }
+
         /// <summary>
         /// Sets the profile used by the driver for scanning.
         /// This must be set before calling Scan.
@@ -63,6 +68,6 @@ namespace NAPS2.Scan
         /// <returns>A list of scanned images.</returns>
         /// <exception cref="ScanDriverException">Throws a ScanDriverException if an error occurs while scanning.</exception>
         /// /// <exception cref="InvalidOperationException">Throws an InvalidOperationException if ScanProfile or DialogParent has not been set.</exception>
-        IEnumerable<ScannedImage> Scan();
+        ScannedImageSource Scan();
     }
 }

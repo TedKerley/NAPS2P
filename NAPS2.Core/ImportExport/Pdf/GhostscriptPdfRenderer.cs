@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Windows.Forms;
 using Ghostscript.NET.Rasterizer;
 using NAPS2.Config;
 using NAPS2.Dependencies;
 using NAPS2.Lang.Resources;
 using NAPS2.Scan;
 using NAPS2.Util;
-using NAPS2.WinForms;
 
 namespace NAPS2.ImportExport.Pdf
 {
@@ -20,17 +17,18 @@ namespace NAPS2.ImportExport.Pdf
         private readonly IComponentInstallPrompt componentInstallPrompt;
         private readonly AppConfigManager appConfigManager;
         private readonly IErrorOutput errorOutput;
+        private readonly GhostscriptManager ghostscriptManager;
 
         private readonly Lazy<byte[]> gsLibBytes;
 
-        public GhostscriptPdfRenderer(IComponentInstallPrompt componentInstallPrompt, AppConfigManager appConfigManager, IErrorOutput errorOutput)
+        public GhostscriptPdfRenderer(IComponentInstallPrompt componentInstallPrompt, AppConfigManager appConfigManager, IErrorOutput errorOutput, GhostscriptManager ghostscriptManager)
         {
             this.componentInstallPrompt = componentInstallPrompt;
             this.appConfigManager = appConfigManager;
             this.errorOutput = errorOutput;
+            this.ghostscriptManager = ghostscriptManager;
 
-            gsLibBytes = new Lazy<byte[]>(() => File.ReadAllBytes(Dependencies.GhostscriptComponent.Path));
-            ExternalComponent.InitBasePath(appConfigManager);
+            gsLibBytes = new Lazy<byte[]>(() => File.ReadAllBytes(ghostscriptManager.GhostscriptComponent.Path));
         }
 
         public void ThrowIfCantRender()
@@ -56,7 +54,7 @@ namespace NAPS2.ImportExport.Pdf
                 for (int pageNumber = 1; pageNumber <= rasterizer.PageCount; pageNumber++)
                 {
                     var bitmap = (Bitmap)rasterizer.GetPage(dpi, dpi, pageNumber);
-                    bitmap.SetResolution(dpi, dpi);
+                    bitmap.SafeSetResolution(dpi, dpi);
                     yield return bitmap;
                 }
             }
@@ -64,7 +62,7 @@ namespace NAPS2.ImportExport.Pdf
 
         private bool VerifyDependencies()
         {
-            if (Dependencies.GhostscriptComponent.IsInstalled)
+            if (ghostscriptManager.GhostscriptComponent.IsInstalled)
             {
                 return true;
             }
@@ -72,29 +70,7 @@ namespace NAPS2.ImportExport.Pdf
             {
                 return false;
             }
-            return componentInstallPrompt.PromptToInstall(Dependencies.GhostscriptDownload, Dependencies.GhostscriptComponent, MiscResources.PdfImportComponentNeeded);
-        }
-
-        public static class Dependencies
-        {
-            private static readonly List<(PlatformSupport, string)> UrlFormats = new List<(PlatformSupport, string)>
-            {
-                (PlatformSupport.ModernWindows, @"https://github.com/cyanfish/naps2-components/releases/download/gs-9.21/{0}"),
-                (PlatformSupport.ModernWindows, @"https://sourceforge.net/projects/naps2/files/components/gs-9.21/{0}/download"),
-                (PlatformSupport.WindowsXp, @"http://xp-mirror.naps2.com/gs-9.21/{0}")
-            };
-
-            private static readonly DownloadInfo GhostscriptDownload32 = new DownloadInfo("gsdll32.dll.gz", UrlFormats, 10.39, "fd7446a05efaf467f5f6a7123c525b0fc7bde711", DownloadFormat.Gzip);
-
-            private static readonly DownloadInfo GhostscriptDownload64 = new DownloadInfo("gsdll64.dll.gz", UrlFormats, 10.78, "de173f9020c21784727f8c749190d610e4856a0c", DownloadFormat.Gzip);
-
-            public static DownloadInfo GhostscriptDownload => Environment.Is64BitProcess ? GhostscriptDownload64 : GhostscriptDownload32;
-
-            private static readonly ExternalComponent GhostscriptComponent32 = new ExternalComponent("generic-import", @"gs-9.21\gsdll32.dll", PlatformSupport.Windows);
-
-            private static readonly ExternalComponent GhostscriptComponent64 = new ExternalComponent("generic-import", @"gs-9.21\gsdll64.dll", PlatformSupport.Windows);
-
-            public static ExternalComponent GhostscriptComponent => Environment.Is64BitProcess ? GhostscriptComponent64 : GhostscriptComponent32;
+            return componentInstallPrompt.PromptToInstall(ghostscriptManager.GhostscriptComponent, MiscResources.PdfImportComponentNeeded);
         }
     }
 }

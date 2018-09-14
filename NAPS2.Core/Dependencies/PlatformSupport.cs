@@ -12,6 +12,12 @@ namespace NAPS2.Dependencies
 
         public static readonly PlatformSupport ModernWindows = Windows.Except(WindowsXp);
 
+        public static readonly PlatformSupport X64 = new PlatformSupport(() => Environment.Is64BitOperatingSystem);
+
+        public static readonly PlatformSupport ModernWindows64 = ModernWindows.And(X64);
+
+        public static readonly PlatformSupport Linux = new PlatformSupport(() => Environment.OSVersion.Platform == PlatformID.Unix);
+
         private readonly Func<bool> predicate;
 
         private PlatformSupport(Func<bool> predicate)
@@ -19,11 +25,8 @@ namespace NAPS2.Dependencies
             this.predicate = predicate;
         }
 
-        public bool Validate()
-        {
-            return predicate();
-        }
-        
+        public bool Validate() => predicate();
+
         public PlatformSupport And(params PlatformSupport[] platforms)
         {
             return new PlatformSupport(() => Validate() && platforms.All(x => x.Validate()));

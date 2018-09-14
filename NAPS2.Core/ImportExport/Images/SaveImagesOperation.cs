@@ -6,6 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Lang.Resources;
 using NAPS2.Operation;
@@ -19,24 +20,20 @@ namespace NAPS2.ImportExport.Images
         private readonly FileNamePlaceholders fileNamePlaceholders;
         private readonly ImageSettingsContainer imageSettingsContainer;
         private readonly IOverwritePrompt overwritePrompt;
-        private readonly ThreadFactory threadFactory;
         private readonly ScannedImageRenderer scannedImageRenderer;
         private readonly TiffHelper tiffHelper;
 
-        private bool cancel;
-        private Thread thread;
-
-        public SaveImagesOperation(FileNamePlaceholders fileNamePlaceholders, ImageSettingsContainer imageSettingsContainer, IOverwritePrompt overwritePrompt, ThreadFactory threadFactory, ScannedImageRenderer scannedImageRenderer, TiffHelper tiffHelper)
+        public SaveImagesOperation(FileNamePlaceholders fileNamePlaceholders, ImageSettingsContainer imageSettingsContainer, IOverwritePrompt overwritePrompt, ScannedImageRenderer scannedImageRenderer, TiffHelper tiffHelper)
         {
             this.fileNamePlaceholders = fileNamePlaceholders;
             this.imageSettingsContainer = imageSettingsContainer;
             this.overwritePrompt = overwritePrompt;
-            this.threadFactory = threadFactory;
             this.scannedImageRenderer = scannedImageRenderer;
             this.tiffHelper = tiffHelper;
 
             ProgressTitle = MiscResources.SaveImagesProgress;
             AllowCancel = true;
+            AllowBackground = true;
         }
 
         public string FirstFileSaved { get; private set; }
@@ -55,9 +52,9 @@ namespace NAPS2.ImportExport.Images
             {
                 MaxProgress = images.Count
             };
-            cancel = false;
 
-            thread = threadFactory.StartThread(() =>
+            var snapshots = images.Select(x => x.Preserve()).ToList();
+            RunAsync(async () =>
             {
                 try
                 {
@@ -76,32 +73,26 @@ namespace NAPS2.ImportExport.Images
                         {
                             if (overwritePrompt.ConfirmOverwrite(subFileName) != DialogResult.Yes)
                             {
-                                return;
+                                return false;
                             }
                         }
                         Status.StatusText = string.Format(MiscResources.SavingFormat, Path.GetFileName(subFileName));
-                        Status.Success = tiffHelper.SaveMultipage(images, subFileName, imageSettingsContainer.ImageSettings.TiffCompression, j =>
-                        {
-                            Status.CurrentProgress = j;
-                            InvokeStatusChanged();
-                            return !cancel;
-                        });
                         FirstFileSaved = subFileName;
-                        return;
+                        return await tiffHelper.SaveMultipage(snapshots, subFileName, imageSettingsContainer.ImageSettings.TiffCompression, OnProgress, CancelToken);
                     }
 
                     int i = 0;
-                    int digits = (int)Math.Floor(Math.Log10(images.Count)) + 1;
-                    foreach (ScannedImage img in images)
+                    int digits = (int)Math.Floor(Math.Log10(snapshots.Count)) + 1;
+                    foreach (ScannedImage.Snapshot snapshot in snapshots)
                     {
-                        if (cancel)
+                        if (CancelToken.IsCancellationRequested)
                         {
-                            return;
+                            return false;
                         }
                         Status.CurrentProgress = i;
                         InvokeStatusChanged();
 
-                        if (images.Count == 1 && File.Exists(subFileName))
+                        if (snapshots.Count == 1 && File.Exists(subFileName))
                         {
                             var dialogResult = overwritePrompt.ConfirmOverwrite(subFileName);
                             if (dialogResult == DialogResult.No)
@@ -110,14 +101,14 @@ namespace NAPS2.ImportExport.Images
                             }
                             if (dialogResult == DialogResult.Cancel)
                             {
-                                return;
+                                return false;
                             }
                         }
-                        if (images.Count == 1)
+                        if (snapshots.Count == 1)
                         {
                             Status.StatusText = string.Format(MiscResources.SavingFormat, Path.GetFileName(subFileName));
                             InvokeStatusChanged();
-                            DoSaveImage(img, subFileName, format);
+                            await DoSaveImage(snapshot, subFileName, format);
                             FirstFileSaved = subFileName;
                         }
                         else
@@ -126,7 +117,7 @@ namespace NAPS2.ImportExport.Images
                                 digits);
                             Status.StatusText = string.Format(MiscResources.SavingFormat, Path.GetFileName(fileNameN));
                             InvokeStatusChanged();
-                            DoSaveImage(img, fileNameN, format);
+                            await DoSaveImage(snapshot, fileNameN, format);
 
                             if (i == 0)
                             {
@@ -136,7 +127,7 @@ namespace NAPS2.ImportExport.Images
                         i++;
                     }
 
-                    Status.Success = FirstFileSaved != null;
+                    return FirstFileSaved != null;
                 }
                 catch (UnauthorizedAccessException ex)
                 {
@@ -149,20 +140,21 @@ namespace NAPS2.ImportExport.Images
                 }
                 finally
                 {
+                    snapshots.ForEach(s => s.Dispose());
                     GC.Collect();
-                    InvokeFinished();
                 }
+                return false;
             });
 
             return true;
         }
 
-        private void DoSaveImage(ScannedImage image, string path, ImageFormat format)
+        private async Task DoSaveImage(ScannedImage.Snapshot snapshot, string path, ImageFormat format)
         {
             PathHelper.EnsureParentDirExists(path);
             if (Equals(format, ImageFormat.Tiff))
             {
-                tiffHelper.SaveMultipage(new List<ScannedImage> { image }, path, imageSettingsContainer.ImageSettings.TiffCompression, i => true);
+                await tiffHelper.SaveMultipage(new List<ScannedImage.Snapshot> { snapshot }, path, imageSettingsContainer.ImageSettings.TiffCompression, (i, j) => { }, CancellationToken.None);
             }
             else if (Equals(format, ImageFormat.Jpeg))
             {
@@ -170,36 +162,17 @@ namespace NAPS2.ImportExport.Images
                 var encoder = ImageCodecInfo.GetImageEncoders().First(x => x.FormatID == ImageFormat.Jpeg.Guid);
                 var encoderParams = new EncoderParameters(1);
                 encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, quality);
-                using (Bitmap bitmap = scannedImageRenderer.Render(image))
+                using (Bitmap bitmap = await scannedImageRenderer.Render(snapshot))
                 {
                     bitmap.Save(path, encoder, encoderParams);
                 }
             }
             else
             {
-                using (Bitmap bitmap = scannedImageRenderer.Render(image))
+                using (Bitmap bitmap = await scannedImageRenderer.Render(snapshot))
                 {
                     bitmap.Save(path, format);
                 }
-            }
-        }
-
-        public override void Cancel()
-        {
-            cancel = true;
-        }
-
-        public override void WaitUntilFinished()
-        {
-            WaitUntilFinished(true);
-        }
-
-        public void WaitUntilFinished(bool throwOnError)
-        {
-            thread.Join();
-            if (throwOnError && LastError != null)
-            {
-                throw new Exception(LastError.ErrorMessage, LastError.Exception);
             }
         }
 
