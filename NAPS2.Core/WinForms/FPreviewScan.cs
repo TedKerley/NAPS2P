@@ -75,8 +75,8 @@ namespace NAPS2.WinForms
             this.Visible = true;
 
             this.layoutManager = new LayoutManager(this).Bind(this.imageAreaSelector).WidthToForm().HeightToForm()
-                .Bind(this.btnDone, this.btnReset, this.btnPreview, this.btnScan, this.btnPreviewPrevious).TopToForm()
-                .Bind(this.btnPreview, this.btnScan, this.btnReset, this.btnDone, this.btnPreviewPrevious).RightToForm()
+                .Bind(this.btnDone, this.btnReset, this.btnPreview, this.btnScan, this.btnPreviewPrevious, this.chkUseScanner).TopToForm()
+                .Bind(this.btnPreview, this.btnScan, this.btnReset, this.btnDone, this.btnPreviewPrevious, this.chkUseScanner).RightToForm()
                 .Activate();
 
             this.Reset();
@@ -114,19 +114,37 @@ namespace NAPS2.WinForms
 
             try
             {
-                this.previousOffsets = await this.ScanAsync(
-                                           image => newImage = image,
-                                           preview: true,
-                                           usePrevious: usePrevious);
+                
 
-                // Disconnect bitmap from underlying file, allowing recovery file dispose to delete the associated file.
-                bitmap = (Bitmap)Image.FromStream(await this.scannedImageRenderer.RenderToStream(newImage));
+                if (usePrevious || this.chkUseScanner.Checked)
+                {
+                    this.previousOffsets = await this.ScanAsync(
+                                               image => newImage = image,
+                                               preview: true,
+                                               usePrevious: usePrevious);
 
-                this.imageAreaSelector.SetImage(bitmap);
+                    // Disconnect bitmap from underlying file, allowing recovery file dispose to delete the associated file.
 
+                    bitmap = (Bitmap)Image.FromStream(await this.scannedImageRenderer.RenderToStream(newImage));
+
+                    this.imageAreaSelector.SetImage(bitmap);
+                }
+                else
+                {
+                    this.previousOffsets = this.GenerateNewOffsets(usePrevious: false);
+                    this.imageAreaSelector.ExtendToSelection();
+                }
 
                 this.btnScan.Enabled = true;
                 this.btnPreviewPrevious.Enabled = true;
+                if (!this.chkUseScanner.Enabled)
+                {
+                    this.chkUseScanner.Enabled = true;
+
+                    // Default to preview image area without rescanning.
+                    // This is only set after the first preview scan.
+                    this.chkUseScanner.Checked = false;
+                }
 
                 this.UpdateLayout();
             }
@@ -147,6 +165,7 @@ namespace NAPS2.WinForms
             // The scan button is disabled until a preview has been performed.
             this.btnScan.Enabled = false;
             this.btnPreviewPrevious.Enabled = false;
+            this.chkUseScanner.Enabled = false;
 
             this.imageAreaSelector.Reset(this.currentScanProfile);
             this.UpdateLayout();
@@ -154,13 +173,7 @@ namespace NAPS2.WinForms
 
         private async Task<Offset> ScanAsync(Action<ScannedImage> onImageAction, bool preview, bool usePrevious)
         {
-            Offset offsetsToUse = usePrevious
-                                      ? this.previousOffsets
-                                      :
-                                      this.previousOffsets == null || this.previousOffsets.IsEmpty
-                                          ?
-                                          this.imageAreaSelector.Offsets.Clone()
-                                          : this.previousOffsets.Append(this.imageAreaSelector.Offsets);
+            Offset offsetsToUse = this.GenerateNewOffsets(usePrevious);
 
             ScanProfile scanProfile = this.currentScanProfile.Clone();
 
@@ -187,6 +200,18 @@ namespace NAPS2.WinForms
 
             onImageAction(scan);
 
+            return offsetsToUse;
+        }
+
+        private Offset GenerateNewOffsets(bool usePrevious)
+        {
+            Offset offsetsToUse = usePrevious
+                                      ? this.previousOffsets
+                                      :
+                                      this.previousOffsets == null || this.previousOffsets.IsEmpty
+                                          ?
+                                          this.imageAreaSelector.Offsets.Clone()
+                                          : this.previousOffsets.Append(this.imageAreaSelector.Offsets);
             return offsetsToUse;
         }
 

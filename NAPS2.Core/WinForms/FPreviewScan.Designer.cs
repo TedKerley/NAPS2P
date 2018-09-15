@@ -27,6 +27,7 @@ namespace NAPS2.WinForms
             this.btnPreviewPrevious = new System.Windows.Forms.Button();
             this.btnReset = new System.Windows.Forms.Button();
             this.imageAreaSelector = new NAPS2.WinForms.ImageAreaSelector();
+            this.chkUseScanner = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // btnDone
@@ -74,11 +75,20 @@ namespace NAPS2.WinForms
             resources.ApplyResources(this.imageAreaSelector, "imageAreaSelector");
             this.imageAreaSelector.Name = "imageAreaSelector";
             // 
+            // useScannerCheckbox
+            // 
+            resources.ApplyResources(this.chkUseScanner, "chkUseScanner");
+            this.chkUseScanner.Checked = true;
+            this.chkUseScanner.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkUseScanner.Name = "chkUseScanner";
+            this.chkUseScanner.UseVisualStyleBackColor = true;
+            // 
             // FPreviewScan
             // 
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.btnDone;
+            this.Controls.Add(this.chkUseScanner);
             this.Controls.Add(this.btnReset);
             this.Controls.Add(this.btnPreviewPrevious);
             this.Controls.Add(this.btnPreview);
@@ -89,6 +99,7 @@ namespace NAPS2.WinForms
             this.MinimizeBox = false;
             this.Name = "FPreviewScan";
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -99,5 +110,6 @@ namespace NAPS2.WinForms
         private System.Windows.Forms.Button btnPreviewPrevious;
         private System.Windows.Forms.Button btnReset;
         private ImageAreaSelector imageAreaSelector;
+        private System.Windows.Forms.CheckBox chkUseScanner;
     }
 }

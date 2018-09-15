@@ -10,6 +10,7 @@ namespace NAPS2.WinForms
     using System.Windows.Forms;
 
     using NAPS2.Scan;
+    using NAPS2.Scan.Images.Transforms;
     using NAPS2.Scan.Wia;
 
     using Timer = System.Threading.Timer;
@@ -314,6 +315,21 @@ namespace NAPS2.WinForms
             this.Offsets.Top = this.workingImage.Height - Math.Max(this.tbTop.Value, this.tbBottom.Value);
 
             this.UpdatePreviewBox();
+        }
+
+        public void ExtendToSelection()
+        {
+            // TODO merge with code in FCrop
+            CropTransform transform = new CropTransform
+                                {
+                                    Left = Math.Min(tbLeft.Value, tbRight.Value),
+                                    Right = workingImage.Width - Math.Max(tbLeft.Value, tbRight.Value),
+                                    Bottom = Math.Min(tbTop.Value, tbBottom.Value),
+                                    Top = workingImage.Height - Math.Max(tbTop.Value, tbBottom.Value),
+                                    OriginalHeight = workingImage.Height,
+                                    OriginalWidth = workingImage.Width
+                                };
+            this.SetImage(transform.Perform(this.workingImage));
         }
     }
 }
