@@ -286,11 +286,11 @@ namespace NAPS2.WinForms
             {
                 if (msg.StartsWith(Pipes.MSG_SCAN_WITH_DEVICE, StringComparison.InvariantCulture))
                 {
-                    SafeInvoke(async () => await ScanWithDevice(msg.Substring(Pipes.MSG_SCAN_WITH_DEVICE.Length)));
+                    this.SafeInvoke(async () => await ScanWithDevice(msg.Substring(Pipes.MSG_SCAN_WITH_DEVICE.Length)));
                 }
                 if (msg.Equals(Pipes.MSG_ACTIVATE))
                 {
-                    SafeInvoke(() =>
+                    this.SafeInvoke(() =>
                     {
                         var form = Application.OpenForms.Cast<Form>().Last();
                         if (form.WindowState == FormWindowState.Minimized)
@@ -394,7 +394,7 @@ namespace NAPS2.WinForms
                 Task.Factory.StartNew(() =>
                 {
                     operationProgress.ActiveOperations.ForEach(op => op.Wait());
-                    SafeInvoke(Close);
+                    this.SafeInvoke(Close);
                 });
             }
         }
@@ -503,7 +503,7 @@ namespace NAPS2.WinForms
 
             UpdateScanButton();
 
-            await scanPerformer.PerformScan(editSettingsForm.ScanProfile, new ScanParams(), this, notify, ReceiveScannedImage());
+            await scanPerformer.PerformScan(scanProfile, new ScanParams(), this, notify, ReceiveScannedImage());
             Activate();
         }
 
@@ -539,7 +539,7 @@ namespace NAPS2.WinForms
             ScannedImage last = null;
             return scannedImage =>
             {
-                SafeInvoke(() =>
+                this.SafeInvoke(() =>
                 {
                     lock (imageList)
                     {
@@ -597,7 +597,7 @@ namespace NAPS2.WinForms
 
         private void ImageThumbnailChanged(object sender, EventArgs e)
         {
-            SafeInvokeAsync(() =>
+            this.SafeInvokeAsync(() =>
             {
                 var image = (ScannedImage)sender;
                 lock (image)
@@ -616,7 +616,7 @@ namespace NAPS2.WinForms
 
         private void ImageThumbnailInvalidated(object sender, EventArgs e)
         {
-            SafeInvokeAsync(() =>
+            this.SafeInvokeAsync(() =>
             {
                 var image = (ScannedImage)sender;
                 lock (image)
@@ -896,7 +896,7 @@ namespace NAPS2.WinForms
             {
                 if (appConfigManager.Config.DeleteAfterSaving)
                 {
-                    SafeInvoke(() =>
+                    this.SafeInvoke(() =>
                     {
                         imageList.Delete(imageList.Images.IndiciesOf(images));
                         DeleteThumbnails();
@@ -1154,7 +1154,7 @@ namespace NAPS2.WinForms
         private void tsBatchScan_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FBatchScan>();
-            form.ImageCallback = ReceiveScannedImage();
+            form.ImageCallback = this.ReceiveScannedImage();
             form.ShowDialog();
             UpdateScanButton();
         }
@@ -1162,7 +1162,7 @@ namespace NAPS2.WinForms
         private void tsPreviewScan_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FPreviewScan>();
-            form.ImageCallback = ReceiveScannedImage;
+            form.ImageCallback = this.ReceiveScannedImage();
             form.ShowDialog();
             UpdateScanButton();
 

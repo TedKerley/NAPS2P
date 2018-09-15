@@ -33,7 +33,7 @@ namespace NAPS2.WinForms
                 try
                 {
                     OauthProvider.AcquireToken(cancelTokenSource.Token);
-                    Invoke(() =>
+                    this.Invoke(() =>
                     {
                         DialogResult = DialogResult.OK;
                         Close();

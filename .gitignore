@@ -3,3 +3,7 @@ packages/
 *.user
 *.suo
 .vs/
+/NAPS2_64/bin/Debug
+/NAPS2_64/obj/Debug
+/NAPS2_64.Console/bin/Debug
+/NAPS2_64.Console/obj/Debug

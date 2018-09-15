@@ -43,17 +43,17 @@ namespace NAPS2.WinForms
         /// <summary>
         /// Initializes an instance of the LayoutManager class that will layout the controls of the given form.
         /// </summary>
-        /// <param name="form">The form whose controls will be laid out.</param>
-        public LayoutManager(Form form)
+        /// <param name="containerControl">The form whose controls will be laid out.</param>
+        public LayoutManager(ContainerControl containerControl)
         {
-            Form = form;
+            this.ContainerControl = containerControl;
             Bindings = new List<Binding>();
         }
 
         /// <summary>
         /// Gets the form whose layout the LayoutManager is managing.
         /// </summary>
-        public Form Form { get; }
+        public ContainerControl ContainerControl { get; }
 
         /// <summary>
         /// Gets a list of bindings belonging to the LayoutManager.
@@ -86,7 +86,7 @@ namespace NAPS2.WinForms
         {
             if (!Activated)
             {
-                Form.Resize += OnFormResize;
+                this.ContainerControl.Resize += OnFormResize;
                 Activated = true;
 
                 // Prepare a dependency graph for the controls 
@@ -163,7 +163,7 @@ namespace NAPS2.WinForms
         {
             if (Activated)
             {
-                Form.Resize -= OnFormResize;
+                this.ContainerControl.Resize -= OnFormResize;
                 Activated = false;
             }
         }
@@ -476,7 +476,7 @@ namespace NAPS2.WinForms
             /// <returns>An object that provides an interface to describe bindings.</returns>
             public BindingSyntax WidthToForm()
             {
-                return WidthTo(() => layoutManager.Form.Width);
+                return WidthTo(() => layoutManager.ContainerControl.Width);
             }
 
             /// <summary>
@@ -485,7 +485,7 @@ namespace NAPS2.WinForms
             /// <returns>An object that provides an interface to describe bindings.</returns>
             public BindingSyntax HeightToForm()
             {
-                return HeightTo(() => layoutManager.Form.Height);
+                return HeightTo(() => layoutManager.ContainerControl.Height);
             }
 
             /// <summary>
@@ -503,7 +503,7 @@ namespace NAPS2.WinForms
             /// <returns>An object that provides an interface to describe bindings.</returns>
             public BindingSyntax RightToForm()
             {
-                return RightTo(() => layoutManager.Form.Width);
+                return RightTo(() => layoutManager.ContainerControl.Width);
             }
 
             /// <summary>
@@ -521,7 +521,7 @@ namespace NAPS2.WinForms
             /// <returns>An object that provides an interface to describe bindings.</returns>
             public BindingSyntax BottomToForm()
             {
-                return BottomTo(() => layoutManager.Form.Height);
+                return BottomTo(() => layoutManager.ContainerControl.Height);
             }
         }
     }

@@ -298,8 +298,8 @@ namespace NAPS2.WinForms
             try
             {
                 await batchScanPerformer.PerformBatchScan(BatchSettings, this,
-                    image => SafeInvoke(() => ImageCallback(image)), ProgressCallback());
-                SafeInvoke(() =>
+                    image => this.SafeInvoke(() => ImageCallback(image)), ProgressCallback());
+                this.SafeInvoke(() =>
                 {
                     lblStatus.Text = cancelBatch
                         ? MiscResources.BatchStatusCancelled
@@ -322,12 +322,12 @@ namespace NAPS2.WinForms
             {
                 Log.ErrorException("Error in batch scan", ex);
                 errorOutput.DisplayError(MiscResources.BatchError, ex);
-                SafeInvoke(() =>
+                this.SafeInvoke(() =>
                 {
                     lblStatus.Text = MiscResources.BatchStatusError;
                 });
             }
-            SafeInvoke(() =>
+            this.SafeInvoke(() =>
             {
                 batchRunning = false;
                 cancelBatch = false;
@@ -345,7 +345,7 @@ namespace NAPS2.WinForms
             {
                 if (!cancelBatch)
                 {
-                    SafeInvoke(() =>
+                    this.SafeInvoke(() =>
                     {
                         lblStatus.Text = status;
                     });

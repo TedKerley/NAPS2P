@@ -12,8 +12,8 @@ namespace NAPS2.Scan
     {
         public ScanDevice(string id, string name)
         {
-            ID = id;
-            Name = name;
+            this.ID = id;
+            this.Name = name;
         }
 
         public ScanDevice()

@@ -7,6 +7,7 @@ using System.Xml.Serialization;
 using NAPS2.ImportExport;
 using NAPS2.Lang.Resources;
 
+
 namespace NAPS2.Scan
 {
     /// <summary>

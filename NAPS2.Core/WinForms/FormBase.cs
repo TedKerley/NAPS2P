@@ -86,39 +86,7 @@ namespace NAPS2.WinForms
             e.Value = ((Enum)e.ListItem).Description();
         }
 
-        public void Invoke(Action action)
-        {
-            ((Control) this).Invoke(action);
-        }
-
-        public void SafeInvoke(Action action)
-        {
-            try
-            {
-                Invoke(action);
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-
-        public void SafeInvokeAsync(Action action)
-        {
-            try
-            {
-                BeginInvoke(action);
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-
+       
         #endregion
 
         protected void UpdateRTL()

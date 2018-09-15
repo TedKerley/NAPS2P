@@ -106,7 +106,7 @@ namespace NAPS2.WinForms
                         working = true;
                         previewOutOfDate = false;
                         var bitmap = RenderPreview();
-                        SafeInvoke(() =>
+                        this.SafeInvoke(() =>
                         {
                             PictureBox.Image?.Dispose();
                             PictureBox.Image = bitmap;

@@ -39,7 +39,7 @@ namespace NAPS2.WinForms
         {
             if (current > 0)
             {
-                SafeInvoke(() =>
+                this.SafeInvoke(() =>
                 {
                     progressBar.Style = ProgressBarStyle.Continuous;
                     progressBar.Maximum = max;
@@ -74,7 +74,7 @@ namespace NAPS2.WinForms
                 {
                     Exception = ex;
                 }
-                SafeInvoke(() =>
+                this.SafeInvoke(() =>
                 {
                     isComplete = true;
                     DialogResult = CancelToken.IsCancellationRequested ? DialogResult.Cancel : DialogResult.OK;

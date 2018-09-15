@@ -41,7 +41,7 @@ namespace NAPS2.WinForms
         {
             if (!background)
             {
-                SafeInvoke(() => errorOutput.DisplayError(e.ErrorMessage, e.Exception));
+                this.SafeInvoke(() => errorOutput.DisplayError(e.ErrorMessage, e.Exception));
             }
         }
 
@@ -49,7 +49,7 @@ namespace NAPS2.WinForms
         {
             if (loaded && !background)
             {
-                SafeInvoke(DisplayProgress);
+                this.SafeInvoke(DisplayProgress);
             }
         }
 
@@ -57,7 +57,7 @@ namespace NAPS2.WinForms
         {
             if (loaded && !background)
             {
-                SafeInvoke(Close);
+                this.SafeInvoke(Close);
             }
         }
 

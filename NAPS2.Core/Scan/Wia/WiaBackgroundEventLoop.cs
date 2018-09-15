@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using NAPS2.Util;
+using NAPS2.Scan;
 
 namespace NAPS2.Scan.Wia
 {
@@ -22,7 +23,7 @@ namespace NAPS2.Scan.Wia
         private Form form;
         private WiaState wiaState;
 
-        public WiaBackgroundEventLoop(ScanProfile profile, ScanDevice scanDevice, ThreadFactory threadFactory, ScanParams scanParams)
+        public WiaBackgroundEventLoop(ScanProfile profile, ScanDevice scanDevice, ScanParams scanParams)
         {
             this.profile = profile;
             this.scanDevice = scanDevice;
