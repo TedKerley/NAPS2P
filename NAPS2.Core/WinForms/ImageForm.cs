@@ -13,6 +13,8 @@ namespace NAPS2.WinForms
     {
         private readonly ChangeTracker changeTracker;
 
+        private readonly ScannedImageRenderer scannedImageRenderer;
+
         private ImageForm()
         {
             // For the designer only
@@ -20,10 +22,15 @@ namespace NAPS2.WinForms
             
         }
 
+        Lazy<ImagePreviewHelper> imagePreviewHelperLazy; 
+
         protected ImageForm(ChangeTracker changeTracker, ScannedImageRenderer scannedImageRenderer)
         {
             this.changeTracker = changeTracker;
-            this.ImagePreviewHelper = new ImagePreviewHelper(scannedImageRenderer, this, this.RenderPreview);
+            this.scannedImageRenderer = scannedImageRenderer;
+
+            // Use a lazy variable because the PictureBox property is virtual.
+            this.imagePreviewHelperLazy = new Lazy<ImagePreviewHelper>(() => new ImagePreviewHelper(this.scannedImageRenderer, this, this.RenderPreview, this.PictureBox));
 
             InitializeComponent();
             
@@ -41,7 +48,7 @@ namespace NAPS2.WinForms
 
         private IEnumerable<ScannedImage> ImagesToTransform => TransformMultiple ? SelectedImages : Enumerable.Repeat(Image, 1);
 
-        protected ImagePreviewHelper ImagePreviewHelper { get; set; }
+        protected ImagePreviewHelper ImagePreviewHelper => this.imagePreviewHelperLazy.Value;
 
         protected virtual Bitmap RenderPreview()
         {

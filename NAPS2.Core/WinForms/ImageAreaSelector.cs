@@ -70,7 +70,9 @@ namespace NAPS2.WinForms
             int widthInPixels = (int)(pageDimensions.WidthInInches() * previewResolution);
             int heightInPixels = (int)(pageDimensions.HeightInInches() * previewResolution);
             
-            this.ImagePreviewHelper.CreateBlankImage(widthInPixels, heightInPixels, Color.Linen);
+            this.ImagePreviewHelper.SetBlankImage(widthInPixels, heightInPixels, Color.Linen);
+
+            
 
             this.UpdateCropBounds();
             

@@ -56,7 +56,8 @@ namespace NAPS2.WinForms
             this.imageAreaSelector.ImagePreviewHelper = new ImagePreviewHelper(
                 this.scannedImageRenderer,
                 this,
-                this.imageAreaSelector.RenderPreview);
+                this.imageAreaSelector.RenderPreview,
+                this.imageAreaSelector.PictureBox);
 
         }
 

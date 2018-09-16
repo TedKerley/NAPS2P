@@ -24,7 +24,11 @@ namespace NAPS2.WinForms
                 get => this.bitmap;
                 set 
             {
-                this.bitmap?.Dispose();
+                if (!ReferenceEquals(this.bitmap, value))
+                {
+                    this.bitmap?.Dispose();
+                }
+
                 this.bitmap = value;
             }
         }
@@ -36,16 +40,24 @@ namespace NAPS2.WinForms
             }
         }
 
-        public void CreateBlankImage(int widthInPixels, int heightInPixels, Color colour)
+        public void SetBlankImage(int widthInPixels, int heightInPixels, Color colour)
         {
-            this.WorkingImage = new Bitmap(widthInPixels, heightInPixels);
-
-            using (Graphics g = Graphics.FromImage(this.WorkingImage))
+            using (Bitmap bitmap = new Bitmap(widthInPixels, heightInPixels))
             {
-                g.Clear(colour);
+                using (Graphics g = Graphics.FromImage(bitmap))
+                {
+                    g.Clear(colour);
+                }
+
+                this.WorkingImage = (Bitmap)bitmap.Clone();
+              
+
             }
 
-            this.WorkingImage2 = (Bitmap)this.WorkingImage.Clone();
+           this.PictureBox.Image?.Dispose();
+
+            // Set the picture box image to a clone, to avoid "the object is in use elsewhere" error.
+            this.PictureBox.Image = (Image)this.WorkingImage.Clone();
         }
 
         public Bitmap WorkingImage
@@ -55,7 +67,7 @@ namespace NAPS2.WinForms
 
         {
             this.workingImage.Value = value;
-            this.workingImage2.Value = value;
+            this.workingImage2.Value = (Bitmap)value.Clone();
         }
     }
 
@@ -79,9 +91,10 @@ namespace NAPS2.WinForms
 
         private BitmapReference workingImage2 = new BitmapReference();
 
-        public ImagePreviewHelper(ScannedImageRenderer scannedImageRenderer, Control parentControl, Func<Bitmap> renderPreviewFunc)
+        public ImagePreviewHelper(ScannedImageRenderer scannedImageRenderer, Control parentControl, Func<Bitmap> renderPreviewFunc, PictureBox pictureBox)
         {
             this.RenderPreviewFunc = renderPreviewFunc;
+            PictureBox = pictureBox;
             this.scannedImageRenderer = scannedImageRenderer;
             this.parentControl = parentControl;
         }
