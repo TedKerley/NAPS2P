@@ -10,6 +10,8 @@ using NAPS2.Util;
 
 namespace NAPS2.WinForms
 {
+    using NAPS2.Scan.Wia;
+
     partial class FCrop : ImageForm
     {
         private static CropTransform _lastTransform;
@@ -21,11 +23,12 @@ namespace NAPS2.WinForms
         public FCrop(ChangeTracker changeTracker, ScannedImageRenderer scannedImageRenderer)
             : base(changeTracker, scannedImageRenderer)
         {
-            this.imageAreaSelector = new NAPS2.WinForms.ImageAreaSelector(this.ImagePreviewHelper);
             InitializeComponent();
 
-            lm = new LayoutManager(this).Bind(this.imageAreaSelector).WidthToForm().HeightToForm()
-                .Activate();
+            this.imageAreaSelector.ImagePreviewHelper = this.ImagePreviewHelper;
+            lm = new LayoutManager(this).Bind(this.imageAreaSelector).WidthToForm().HeightToForm().Activate();
+            this.imageAreaSelector.SelectedAreaChanged += (sender, args) => this.UpdateTransform();
+
         }
 
         public CropTransform CropTransform { get; private set; }
@@ -49,15 +52,26 @@ namespace NAPS2.WinForms
             }
             else
             {
-                CropTransform = this.imageAreaSelector.CreateCropTransform();
+                this.UpdateTransform();
             }
 
+            this.imageAreaSelector.UpdateCropBounds();
+            this.imageAreaSelector.UpdateLayout();
+            this.lm.UpdateLayout();
+
+        }
+
+        private void UpdateTransform()
+        {
+            this.CropTransform = this.imageAreaSelector.CreateCropTransform();
         }
 
         protected override void ResetTransform()
         {
-            CropTransform =
-                new CropTransform { OriginalHeight = this.ImagePreviewHelper.WorkingImage.Height, OriginalWidth = this.ImagePreviewHelper.WorkingImage.Width };
+            this.imageAreaSelector.ClearSelection();
+            CropTransform = this.imageAreaSelector.CreateCropTransform();
+
+
         }
 
         protected override void TransformSaved()
@@ -69,7 +83,8 @@ namespace NAPS2.WinForms
         private async void FCrop_Load(object sender, EventArgs e)
         {
             await this.imageAreaSelector.SetImageAsync(this.Image);
-
         }
+
     }
+    
 }

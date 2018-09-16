@@ -117,12 +117,16 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="imageAreaSelector.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Bottom, Left, Right</value>
+  </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="imageAreaSelector.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 0</value>
+    <value>30, 12</value>
   </data>
   <data name="imageAreaSelector.Size" type="System.Drawing.Size, System.Drawing">
-    <value>319, 298</value>
+    <value>672, 262</value>
   </data>
   <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="imageAreaSelector.TabIndex" type="System.Int32, mscorlib">
@@ -132,7 +136,7 @@
     <value>imageAreaSelector</value>
   </data>
   <data name="&gt;&gt;imageAreaSelector.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.ImageAreaSelector, NAPS2.Core, Version=5.8.2.28909, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.ImageAreaSelector, NAPS2.Core, Version=5.8.2.35135, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;imageAreaSelector.Parent" xml:space="preserve">
     <value>$this</value>
@@ -147,7 +151,7 @@
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>320, 298</value>
+    <value>762, 661</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -180,6 +184,6 @@
     <value>FCrop</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.ImageForm, NAPS2.Core, Version=5.8.2.28909, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.ImageForm, NAPS2.Core, Version=5.8.2.35135, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

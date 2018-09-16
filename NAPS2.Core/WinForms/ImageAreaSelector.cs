@@ -15,9 +15,11 @@ namespace NAPS2.WinForms
     using NAPS2.Scan.Images.Transforms;
     using NAPS2.Scan.Wia;
 
+   
   
     public partial class ImageAreaSelector : UserControl
     {
+        public EventHandler SelectedAreaChanged;
         public ImagePreviewHelper ImagePreviewHelper
         {
             get => this.imagePreviewHelper;
@@ -83,6 +85,9 @@ namespace NAPS2.WinForms
         public async Task SetImageAsync(ScannedImage image)
         {
             await this.ImagePreviewHelper.SetImageAsync(image);
+
+            this.UpdateLayout();
+            this.UpdateCropBounds();
         }
 
 
@@ -110,8 +115,8 @@ namespace NAPS2.WinForms
             this.layoutManager.UpdateLayout();
         }
 
-        private Bitmap WorkingImage => this.ImagePreviewHelper.WorkingImage;
-        private Bitmap WorkingImage2 => this.ImagePreviewHelper.WorkingImage2;
+        private Bitmap WorkingImage => this.ImagePreviewHelper?.WorkingImage;
+        private Bitmap WorkingImage2 => this.ImagePreviewHelper?.WorkingImage2;
 
 
         /// <summary>
@@ -199,8 +204,14 @@ namespace NAPS2.WinForms
                     this.tbBottom.Value = this.WorkingImage.Height - this.dragStartCoords.Y;
                 }
 
-                this.UpdateTransform();
+                this.UpdateOffsets();
             }
+        }
+
+        public void ClearSelection()
+        {
+            this.SetCropBounds(this.WorkingImage.Width, this.WorkingImage.Height);
+            this.UpdateOffsets();
         }
 
         private void SetCropBounds(int width, int height)
@@ -216,22 +227,22 @@ namespace NAPS2.WinForms
 
         private void tbBottom_Scroll(object sender, EventArgs e)
         {
-            this.UpdateTransform();
+            this.UpdateOffsets();
         }
 
         private void tbLeft_Scroll(object sender, EventArgs e)
         {
-            this.UpdateTransform();
+            this.UpdateOffsets();
         }
 
         private void tbRight_Scroll(object sender, EventArgs e)
         {
-            this.UpdateTransform();
+            this.UpdateOffsets();
         }
 
         private void tbTop_Scroll(object sender, EventArgs e)
         {
-            this.UpdateTransform();
+            this.UpdateOffsets();
         }
 
         private Point TranslatePboxCoords(Point point)
@@ -262,7 +273,7 @@ namespace NAPS2.WinForms
             return new Point((int)Math.Round(x), (int)Math.Round(y));
         }
 
-        private void UpdateCropBounds()
+        public void UpdateCropBounds()
         {
             if (this.WorkingImage != null)
             {
@@ -307,7 +318,7 @@ namespace NAPS2.WinForms
             return bitmap;
         }
 
-        private void UpdateTransform()
+        private void UpdateOffsets()
         {
             this.Offsets.Left = Math.Min(this.tbLeft.Value, this.tbRight.Value);
 
@@ -316,6 +327,7 @@ namespace NAPS2.WinForms
             this.Offsets.Top = this.WorkingImage.Height - Math.Max(this.tbTop.Value, this.tbBottom.Value);
 
             this.UpdatePreviewBox();
+            this.SelectedAreaChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void ExtendToSelection()

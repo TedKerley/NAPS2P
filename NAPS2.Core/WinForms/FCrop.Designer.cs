@@ -31,13 +31,14 @@ namespace NAPS2.WinForms
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources =
-                new System.ComponentModel.ComponentResourceManager(typeof(FCrop));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FCrop));
+            this.imageAreaSelector = new NAPS2.WinForms.ImageAreaSelector();
             this.SuspendLayout();
             // 
             // imageAreaSelector
             // 
             resources.ApplyResources(this.imageAreaSelector, "imageAreaSelector");
+            this.imageAreaSelector.ImagePreviewHelper = null;
             this.imageAreaSelector.Name = "imageAreaSelector";
             // 
             // FCrop
