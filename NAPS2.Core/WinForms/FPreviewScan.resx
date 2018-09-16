@@ -119,7 +119,7 @@
   </resheader>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="btnDone.Location" type="System.Drawing.Point, System.Drawing">
-    <value>450, 531</value>
+    <value>487, 531</value>
   </data>
   <data name="btnDone.Size" type="System.Drawing.Size, System.Drawing">
     <value>88, 23</value>
@@ -157,7 +157,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnScan.Location" type="System.Drawing.Point, System.Drawing">
-    <value>444, 257</value>
+    <value>481, 257</value>
   </data>
   <data name="btnScan.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 10, 0, 6</value>
@@ -246,7 +246,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnPreview.Location" type="System.Drawing.Point, System.Drawing">
-    <value>444, 12</value>
+    <value>481, 12</value>
   </data>
   <data name="btnPreview.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 10, 0, 6</value>
@@ -325,7 +325,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnPreviewPrevious.Location" type="System.Drawing.Point, System.Drawing">
-    <value>444, 169</value>
+    <value>481, 169</value>
   </data>
   <data name="btnPreviewPrevious.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>0, 10, 0, 6</value>
@@ -358,7 +358,7 @@
     <value>NoControl</value>
   </data>
   <data name="btnReset.Location" type="System.Drawing.Point, System.Drawing">
-    <value>450, 502</value>
+    <value>487, 502</value>
   </data>
   <data name="btnReset.Size" type="System.Drawing.Size, System.Drawing">
     <value>88, 23</value>
@@ -382,10 +382,10 @@
     <value>1</value>
   </data>
   <data name="imageAreaSelector.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 2</value>
+    <value>0, -1</value>
   </data>
   <data name="imageAreaSelector.Size" type="System.Drawing.Size, System.Drawing">
-    <value>444, 564</value>
+    <value>463, 555</value>
   </data>
   <data name="imageAreaSelector.TabIndex" type="System.Int32, mscorlib">
     <value>16</value>
@@ -394,7 +394,7 @@
     <value>imageAreaSelector</value>
   </data>
   <data name="&gt;&gt;imageAreaSelector.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.ImageAreaSelector, NAPS2.Core, Version=5.8.2.25717, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.ImageAreaSelector, NAPS2.Core, Version=5.8.2.36205, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;imageAreaSelector.Parent" xml:space="preserve">
     <value>$this</value>
@@ -409,7 +409,7 @@
     <value>False</value>
   </data>
   <data name="chkUseScanner.Location" type="System.Drawing.Point, System.Drawing">
-    <value>444, 114</value>
+    <value>481, 114</value>
   </data>
   <data name="chkUseScanner.Size" type="System.Drawing.Size, System.Drawing">
     <value>88, 17</value>
@@ -439,7 +439,7 @@
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>546, 569</value>
+    <value>581, 575</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -481,6 +481,6 @@
     <value>FPreviewScan</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.FormBase, NAPS2.Core, Version=5.8.2.25717, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.FormBase, NAPS2.Core, Version=5.8.2.36205, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>

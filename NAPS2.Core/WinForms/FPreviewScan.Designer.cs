@@ -66,10 +66,11 @@ namespace NAPS2.WinForms
             // 
             // imageAreaSelector
             // 
+            this.imageAreaSelector.ImagePreviewHelper = null;
             resources.ApplyResources(this.imageAreaSelector, "imageAreaSelector");
             this.imageAreaSelector.Name = "imageAreaSelector";
             // 
-            // useScannerCheckbox
+            // chkUseScanner
             // 
             resources.ApplyResources(this.chkUseScanner, "chkUseScanner");
             this.chkUseScanner.Checked = true;

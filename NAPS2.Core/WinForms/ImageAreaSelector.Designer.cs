@@ -32,7 +32,7 @@
             // 
             this.tbRight.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tbRight.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.tbRight.Location = new System.Drawing.Point(15, 547);
+            this.tbRight.Location = new System.Drawing.Point(27, 476);
             this.tbRight.Name = "tbRight";
             this.tbRight.Size = new System.Drawing.Size(417, 45);
             this.tbRight.TabIndex = 10;
@@ -43,10 +43,10 @@
             // 
             this.tbBottom.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tbBottom.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.tbBottom.Location = new System.Drawing.Point(430, 26);
+            this.tbBottom.Location = new System.Drawing.Point(439, 42);
             this.tbBottom.Name = "tbBottom";
             this.tbBottom.Orientation = System.Windows.Forms.Orientation.Vertical;
-            this.tbBottom.Size = new System.Drawing.Size(45, 525);
+            this.tbBottom.Size = new System.Drawing.Size(45, 428);
             this.tbBottom.TabIndex = 9;
             this.tbBottom.TickStyle = System.Windows.Forms.TickStyle.None;
             this.tbBottom.Scroll += new System.EventHandler(this.tbRight_Scroll);
@@ -57,9 +57,9 @@
             this.pictureBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pictureBox.Cursor = System.Windows.Forms.Cursors.Cross;
             this.pictureBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.pictureBox.Location = new System.Drawing.Point(26, 38);
+            this.pictureBox.Location = new System.Drawing.Point(38, 54);
             this.pictureBox.Name = "pictureBox";
-            this.pictureBox.Size = new System.Drawing.Size(395, 500);
+            this.pictureBox.Size = new System.Drawing.Size(395, 406);
             this.pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox.TabIndex = 6;
             this.pictureBox.TabStop = false;
@@ -70,7 +70,7 @@
             // 
             this.tbLeft.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tbLeft.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.tbLeft.Location = new System.Drawing.Point(15, 2);
+            this.tbLeft.Location = new System.Drawing.Point(27, 18);
             this.tbLeft.Name = "tbLeft";
             this.tbLeft.Size = new System.Drawing.Size(417, 45);
             this.tbLeft.TabIndex = 7;
@@ -81,10 +81,10 @@
             // 
             this.tbTop.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tbTop.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.tbTop.Location = new System.Drawing.Point(2, 26);
+            this.tbTop.Location = new System.Drawing.Point(14, 42);
             this.tbTop.Name = "tbTop";
             this.tbTop.Orientation = System.Windows.Forms.Orientation.Vertical;
-            this.tbTop.Size = new System.Drawing.Size(45, 525);
+            this.tbTop.Size = new System.Drawing.Size(45, 428);
             this.tbTop.TabIndex = 8;
             this.tbTop.TickStyle = System.Windows.Forms.TickStyle.None;
             this.tbTop.Scroll += new System.EventHandler(this.tbLeft_Scroll);
@@ -99,7 +99,7 @@
             this.Controls.Add(this.tbTop);
             this.Controls.Add(this.tbLeft);
             this.Name = "ImageAreaSelector";
-            this.Size = new System.Drawing.Size(458, 573);
+            this.Size = new System.Drawing.Size(470, 515);
             ((System.ComponentModel.ISupportInitialize)(this.tbRight)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbBottom)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).EndInit();
