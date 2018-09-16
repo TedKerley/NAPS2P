@@ -6,31 +6,27 @@ using System.Windows.Forms;
 using NAPS2.Scan.Images;
 using NAPS2.Scan.Images.Transforms;
 using NAPS2.Util;
-using Timer = System.Threading.Timer;
 
 namespace NAPS2.WinForms
 {
     partial class ImageForm : FormBase
     {
         private readonly ChangeTracker changeTracker;
-        private readonly ScannedImageRenderer scannedImageRenderer;
-
-        protected Bitmap workingImage, workingImage2;
-        private bool previewOutOfDate;
-        private bool working;
-        private Timer previewTimer;
 
         private ImageForm()
         {
             // For the designer only
             InitializeComponent();
+            
         }
 
         protected ImageForm(ChangeTracker changeTracker, ScannedImageRenderer scannedImageRenderer)
         {
             this.changeTracker = changeTracker;
-            this.scannedImageRenderer = scannedImageRenderer;
+            this.ImagePreviewHelper = new ImagePreviewHelper(scannedImageRenderer, this, this.RenderPreview);
+
             InitializeComponent();
+            
         }
 
         public ScannedImage Image { get; set; }
@@ -45,9 +41,11 @@ namespace NAPS2.WinForms
 
         private IEnumerable<ScannedImage> ImagesToTransform => TransformMultiple ? SelectedImages : Enumerable.Repeat(Image, 1);
 
+        protected ImagePreviewHelper ImagePreviewHelper { get; set; }
+
         protected virtual Bitmap RenderPreview()
         {
-            var result = (Bitmap)workingImage.Clone();
+            var result = this.ImagePreviewHelper.GetImage();
             foreach (var transform in Transforms)
             {
                 if (!transform.IsNull)
@@ -70,6 +68,8 @@ namespace NAPS2.WinForms
         {
         }
 
+       
+
         private async void ImageForm_Load(object sender, EventArgs e)
         {
             checkboxApplyToSelected.BringToFront();
@@ -87,9 +87,9 @@ namespace NAPS2.WinForms
 
             Size = new Size(600, 600);
 
-            var maxDimen = Screen.AllScreens.Max(s => Math.Max(s.WorkingArea.Height, s.WorkingArea.Width));
-            workingImage = await scannedImageRenderer.Render(Image, maxDimen * 2);
-            workingImage2 = (Bitmap)workingImage.Clone();
+            int maxDimen = Screen.AllScreens.Max(s => Math.Max(s.WorkingArea.Height, s.WorkingArea.Width));
+
+            await this.ImagePreviewHelper.SetImageAsync(this.Image, maxDimen);
 
             InitTransform();
             UpdatePreviewBox();
@@ -97,25 +97,8 @@ namespace NAPS2.WinForms
         
         protected void UpdatePreviewBox()
         {
-            if (previewTimer == null)
-            {
-                previewTimer = new Timer((obj) =>
-                {
-                    if (previewOutOfDate && !working)
-                    {
-                        working = true;
-                        previewOutOfDate = false;
-                        var bitmap = RenderPreview();
-                        this.SafeInvoke(() =>
-                        {
-                            PictureBox.Image?.Dispose();
-                            PictureBox.Image = bitmap;
-                        });
-                        working = false;
-                    }
-                }, null, 0, 100);
-            }
-            previewOutOfDate = true;
+            this.ImagePreviewHelper.UpdatePreviewBox();
+
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
@@ -149,12 +132,19 @@ namespace NAPS2.WinForms
             UpdatePreviewBox();
         }
 
-        private void ImageForm_FormClosed(object sender, FormClosedEventArgs e)
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        protected override void Dispose(bool disposing)
         {
-            workingImage.Dispose();
-            workingImage2.Dispose();
-            PictureBox.Image?.Dispose();
-            previewTimer?.Dispose();
+
+            if (disposing)
+            {
+                this.ImagePreviewHelper.Dispose();
+                this.PictureBox.Image?.Dispose();
+                this.components?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

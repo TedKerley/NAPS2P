@@ -7,43 +7,54 @@ namespace NAPS2.WinForms
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Threading.Tasks;
     using System.Windows.Forms;
 
     using NAPS2.Scan;
+    using NAPS2.Scan.Images;
     using NAPS2.Scan.Images.Transforms;
     using NAPS2.Scan.Wia;
 
-    using Timer = System.Threading.Timer;
-
+  
     public partial class ImageAreaSelector : UserControl
     {
+        public ImagePreviewHelper ImagePreviewHelper
+        {
+            get => this.imagePreviewHelper;
+            set
+            {
+                this.imagePreviewHelper = value;
+                this.ConfigureLayoutManager();
+            }
+        }
+
         private Point dragStartCoords;
 
         private LayoutManager layoutManager;
 
-        private bool previewOutOfDate;
-
-        private Timer previewTimer;
-
-        private bool working;
-
-        private Bitmap workingImage;
-
-        private Bitmap workingImage2;
+        private ImagePreviewHelper imagePreviewHelper;
 
         public ImageAreaSelector()
         {
-
             this.InitializeComponent();
+            this.layoutManager = new LayoutManager(this);
+        }
 
-            this.layoutManager = new LayoutManager(this)
-                .Bind(this.pictureBox).LeftToForm().RightToForm().TopToForm().BottomToForm()
-                .Bind(this.tbLeft, this.tbRight).WidthTo(() => (int)(this.GetImageWidthRatio() * this.pictureBox.Width)).LeftTo(() => (int)((1 - this.GetImageWidthRatio()) * this.pictureBox.Width / 2))
-                .Bind(this.tbTop, this.tbBottom).HeightTo(() => (int)(this.GetImageHeightRatio() * this.pictureBox.Height)).TopTo(() => (int)((1 - this.GetImageHeightRatio()) * this.pictureBox.Height / 2))
-                .Bind(this.tbBottom).RightToForm()
-                .Bind(this.tbRight).BottomToForm()
-                .Bind(this.tbLeft).TopToForm()
-                .Bind(this.tbTop).LeftToForm()
+        public ImageAreaSelector(ImagePreviewHelper imagePreviewHelper) : this()
+        {
+            this.ImagePreviewHelper = imagePreviewHelper;
+            this.ConfigureLayoutManager();
+        }
+
+        private void ConfigureLayoutManager()
+        {
+            this.layoutManager.Bind(this.pictureBox).LeftToForm().RightToForm().TopToForm()
+                .BottomToForm().Bind(this.tbLeft, this.tbRight)
+                .WidthTo(() => (int)(this.GetImageWidthRatio() * this.pictureBox.Width))
+                .LeftTo(() => (int)((1 - this.GetImageWidthRatio()) * this.pictureBox.Width / 2))
+                .Bind(this.tbTop, this.tbBottom).HeightTo(() => (int)(this.GetImageHeightRatio() * this.pictureBox.Height))
+                .TopTo(() => (int)((1 - this.GetImageHeightRatio()) * this.pictureBox.Height / 2)).Bind(this.tbBottom)
+                .RightToForm().Bind(this.tbRight).BottomToForm().Bind(this.tbLeft).TopToForm().Bind(this.tbTop).LeftToForm()
                 .Activate();
         }
 
@@ -58,36 +69,35 @@ namespace NAPS2.WinForms
 
             int widthInPixels = (int)(pageDimensions.WidthInInches() * previewResolution);
             int heightInPixels = (int)(pageDimensions.HeightInInches() * previewResolution);
-            this.workingImage?.Dispose();
-            this.workingImage = new Bitmap(widthInPixels, heightInPixels);
-
-            using (Graphics g = Graphics.FromImage(this.workingImage))
-            {
-                g.Clear(Color.Linen);
-            }
-
-            this.workingImage2?.Dispose();
-            this.workingImage2 = (Bitmap)this.workingImage.Clone();
+            
+            this.ImagePreviewHelper.CreateBlankImage(widthInPixels, heightInPixels, Color.Linen);
 
             this.UpdateCropBounds();
-            this.UpdatePreviewBox();
+            
             this.UpdateLayout();
         }
 
+
+        public async Task SetImageAsync(ScannedImage image)
+        {
+            await this.ImagePreviewHelper.SetImageAsync(image);
+        }
+
+
+        
         public void SetImage(Bitmap newImageBitmap)
         {
             this.Offsets.Clear();
 
-            this.workingImage?.Dispose();
-            this.workingImage = (Bitmap)newImageBitmap.Clone();
+            
+            this.ImagePreviewHelper.WorkingImage = (Bitmap)newImageBitmap.Clone();
 
-            this.workingImage2?.Dispose();
-            this.workingImage2 = (Bitmap)newImageBitmap.Clone();
+           
 
             this.pictureBox.Image?.Dispose();
 
             // Set the picture box image to a clone, to avoid "the object is in use elsewhere" error.
-            this.pictureBox.Image = (Image)this.workingImage.Clone();
+            this.pictureBox.Image = (Image)newImageBitmap.Clone();
 
             this.UpdateLayout();
             this.UpdateCropBounds();
@@ -98,6 +108,10 @@ namespace NAPS2.WinForms
             this.layoutManager.UpdateLayout();
         }
 
+        private Bitmap WorkingImage => this.ImagePreviewHelper.WorkingImage;
+        private Bitmap WorkingImage2 => this.ImagePreviewHelper.WorkingImage2;
+
+
         /// <summary>
         ///     Clean up any resources being used.
         /// </summary>
@@ -106,24 +120,25 @@ namespace NAPS2.WinForms
             if (disposing && (this.components != null))
             {
                 this.components.Dispose();
-                this.workingImage?.Dispose();
-                this.workingImage2?.Dispose();
+                
                 this.pictureBox.Image?.Dispose();
-                this.previewTimer?.Dispose();
+                this.ImagePreviewHelper.Dispose();
             }
 
             base.Dispose(disposing);
         }
 
+        public PictureBox PictureBox => this.pictureBox;
+
       
         private double GetImageHeightRatio()
         {
-            if (this.workingImage == null)
+            if (this.WorkingImage == null)
             {
                 return 1;
             }
 
-            double imageAspect = this.workingImage.Width / (double)this.workingImage.Height;
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
             double pboxAspect = this.pictureBox.Width / (double)this.pictureBox.Height;
             if (pboxAspect > imageAspect)
             {
@@ -135,12 +150,12 @@ namespace NAPS2.WinForms
 
         private double GetImageWidthRatio()
         {
-            if (this.workingImage == null)
+            if (this.WorkingImage == null)
             {
                 return 1;
             }
 
-            double imageAspect = this.workingImage.Width / (double)this.workingImage.Height;
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
             double pboxAspect = this.pictureBox.Width / (double)this.pictureBox.Height;
             if (imageAspect > pboxAspect)
             {
@@ -173,13 +188,13 @@ namespace NAPS2.WinForms
 
                 if (dragEndCoords.Y > this.dragStartCoords.Y)
                 {
-                    this.tbTop.Value = this.workingImage.Height - this.dragStartCoords.Y;
-                    this.tbBottom.Value = this.workingImage.Height - dragEndCoords.Y;
+                    this.tbTop.Value = this.WorkingImage.Height - this.dragStartCoords.Y;
+                    this.tbBottom.Value = this.WorkingImage.Height - dragEndCoords.Y;
                 }
                 else
                 {
-                    this.tbTop.Value = this.workingImage.Height - dragEndCoords.Y;
-                    this.tbBottom.Value = this.workingImage.Height - this.dragStartCoords.Y;
+                    this.tbTop.Value = this.WorkingImage.Height - dragEndCoords.Y;
+                    this.tbBottom.Value = this.WorkingImage.Height - this.dragStartCoords.Y;
                 }
 
                 this.UpdateTransform();
@@ -221,7 +236,7 @@ namespace NAPS2.WinForms
         {
             double px = point.X - 1;
             double py = point.Y - 1;
-            double imageAspect = this.workingImage.Width / (double)this.workingImage.Height;
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
             double pboxWidth = this.pictureBox.Width - 2;
             double pboxHeight = this.pictureBox.Height - 2;
             double pboxAspect = pboxWidth / pboxHeight;
@@ -238,98 +253,87 @@ namespace NAPS2.WinForms
                 py = imageAspect / pboxAspect * (py - emptyHeight);
             }
 
-            double x = px / pboxWidth * this.workingImage.Width;
-            double y = py / pboxHeight * this.workingImage.Height;
-            x = Math.Max(Math.Min(x, this.workingImage.Width), 0);
-            y = Math.Max(Math.Min(y, this.workingImage.Height), 0);
+            double x = px / pboxWidth * this.WorkingImage.Width;
+            double y = py / pboxHeight * this.WorkingImage.Height;
+            x = Math.Max(Math.Min(x, this.WorkingImage.Width), 0);
+            y = Math.Max(Math.Min(y, this.WorkingImage.Height), 0);
             return new Point((int)Math.Round(x), (int)Math.Round(y));
         }
 
         private void UpdateCropBounds()
         {
-            this.SetCropBounds(this.workingImage.Width, this.workingImage.Height);
+            if (this.WorkingImage != null)
+            {
+                this.SetCropBounds(this.WorkingImage.Width, this.WorkingImage.Height);
+            }
         }
 
+       
         private void UpdatePreviewBox()
         {
-            if (this.previewTimer == null)
-            {
-                this.previewTimer = new Timer(
-                    (obj) =>
-                        {
-                            if (this.previewOutOfDate && !this.working)
-                            {
-                                this.working = true;
-                                this.previewOutOfDate = false;
-                                Bitmap bitmap = new Bitmap(this.workingImage2.Width, this.workingImage2.Height);
-                                using (Graphics g = Graphics.FromImage(bitmap))
-                                {
-                                    g.Clear(Color.Transparent);
-                                    ImageAttributes attrs = new ImageAttributes();
-                                    attrs.SetColorMatrix(new ColorMatrix { Matrix33 = 0.5f });
-                                    g.DrawImage(
-                                        this.workingImage2,
-                                        new Rectangle(0, 0, this.workingImage2.Width, this.workingImage2.Height),
-                                        0,
-                                        0,
-                                        this.workingImage2.Width,
-                                        this.workingImage2.Height,
-                                        GraphicsUnit.Pixel,
-                                        attrs);
-                                    Rectangle cropBorderRect = new Rectangle(
-                                        this.Offsets.Left,
-                                        this.Offsets.Top,
-                                        this.workingImage2.Width - this.Offsets.Left - this.Offsets.Right - 1,
-                                        this.workingImage2.Height - this.Offsets.Top - this.Offsets.Bottom - 1);
-                                    g.SetClip(cropBorderRect);
-                                    g.DrawImage(
-                                        this.workingImage2,
-                                        new Rectangle(0, 0, this.workingImage2.Width, this.workingImage2.Height));
-                                    g.ResetClip();
-                                    g.DrawRectangle(new Pen(Color.Black, 1.0f), cropBorderRect);
-                                }
+            this.ImagePreviewHelper.UpdatePreviewBox();
+        }
 
-                                this.SafeInvoke(
-                                    () =>
-                                        {
-                                            this.pictureBox.Image?.Dispose();
-                                            this.pictureBox.Image = bitmap;
-                                        });
-                                this.working = false;
-                            }
-                        },
-                    null,
+        public Bitmap RenderPreview()
+        {
+            Bitmap bitmap = new Bitmap(this.WorkingImage2.Width, this.WorkingImage2.Height);
+            using (Graphics g = Graphics.FromImage(bitmap))
+            {
+                g.Clear(Color.Transparent);
+                ImageAttributes attrs = new ImageAttributes();
+                attrs.SetColorMatrix(new ColorMatrix { Matrix33 = 0.5f });
+                g.DrawImage(
+                    this.WorkingImage2,
+                    new Rectangle(0, 0, this.WorkingImage2.Width, this.WorkingImage2.Height),
                     0,
-                    100);
+                    0,
+                    this.WorkingImage2.Width,
+                    this.WorkingImage2.Height,
+                    GraphicsUnit.Pixel,
+                    attrs);
+                Rectangle cropBorderRect = new Rectangle(
+                    this.Offsets.Left,
+                    this.Offsets.Top,
+                    this.WorkingImage2.Width - this.Offsets.Left - this.Offsets.Right - 1,
+                    this.WorkingImage2.Height - this.Offsets.Top - this.Offsets.Bottom - 1);
+                g.SetClip(cropBorderRect);
+                g.DrawImage(this.WorkingImage2, new Rectangle(0, 0, this.WorkingImage2.Width, this.WorkingImage2.Height));
+                g.ResetClip();
+                g.DrawRectangle(new Pen(Color.Black, 1.0f), cropBorderRect);
             }
 
-            this.previewOutOfDate = true;
+            return bitmap;
         }
 
         private void UpdateTransform()
         {
             this.Offsets.Left = Math.Min(this.tbLeft.Value, this.tbRight.Value);
 
-            this.Offsets.Right = this.workingImage.Width - Math.Max(this.tbLeft.Value, this.tbRight.Value);
+            this.Offsets.Right = this.WorkingImage.Width - Math.Max(this.tbLeft.Value, this.tbRight.Value);
             this.Offsets.Bottom = Math.Min(this.tbTop.Value, this.tbBottom.Value);
-            this.Offsets.Top = this.workingImage.Height - Math.Max(this.tbTop.Value, this.tbBottom.Value);
+            this.Offsets.Top = this.WorkingImage.Height - Math.Max(this.tbTop.Value, this.tbBottom.Value);
 
             this.UpdatePreviewBox();
         }
 
         public void ExtendToSelection()
         {
-            // TODO merge with code in FCrop
-            CropTransform transform = new CropTransform
-                                {
-                                    Left = Math.Min(tbLeft.Value, tbRight.Value),
-                                    Right = workingImage.Width - Math.Max(tbLeft.Value, tbRight.Value),
-                                    Bottom = Math.Min(tbTop.Value, tbBottom.Value),
-                                    Top = workingImage.Height - Math.Max(tbTop.Value, tbBottom.Value),
-                                    OriginalHeight = workingImage.Height,
-                                    OriginalWidth = workingImage.Width
-                                };
-            this.SetImage(transform.Perform(this.workingImage));
+            CropTransform transform = this.CreateCropTransform();
+            this.SetImage(transform.Perform(this.WorkingImage));
+        }
+
+        public CropTransform CreateCropTransform()
+        {
+              CropTransform transform = new CropTransform
+              {
+                  Left = Math.Min(this.tbLeft.Value, this.tbRight.Value),
+                  Right = this.WorkingImage.Width - Math.Max(this.tbLeft.Value, this.tbRight.Value),
+                  Bottom = Math.Min(this.tbTop.Value, this.tbBottom.Value),
+                  Top = this.WorkingImage.Height - Math.Max(this.tbTop.Value, this.tbBottom.Value),
+                  OriginalHeight = this.WorkingImage.Height,
+                  OriginalWidth = this.WorkingImage.Width
+              };
+                return transform;
         }
     }
 }

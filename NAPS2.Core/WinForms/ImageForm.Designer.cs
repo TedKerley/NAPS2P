@@ -11,17 +11,6 @@ namespace NAPS2.WinForms
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
 
         #region Windows Form Designer generated code
 
@@ -79,8 +68,7 @@ namespace NAPS2.WinForms
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "ImageForm";
-            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ImageForm_FormClosed);
-            this.Load += new System.EventHandler(this.ImageForm_Load);
+             this.Load += new System.EventHandler(this.ImageForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

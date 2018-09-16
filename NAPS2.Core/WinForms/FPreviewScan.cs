@@ -50,7 +50,14 @@ namespace NAPS2.WinForms
             this.scanPerformer = scanPerformer;
             this.profileManager = profileManager;
             this.appConfigManager = appConfigManager;
+
+
             this.InitializeComponent();
+            this.imageAreaSelector.ImagePreviewHelper = new ImagePreviewHelper(
+                this.scannedImageRenderer,
+                this,
+                this.imageAreaSelector.RenderPreview);
+
         }
 
         public Action<ScannedImage> ImageCallback { get; set; }

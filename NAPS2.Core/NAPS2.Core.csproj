@@ -220,6 +220,7 @@
     <Compile Include="WinForms\ImageForm.Designer.cs">
       <DependentUpon>ImageForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="WinForms\ImagePreviewHelper.cs" />
     <Compile Include="WinForms\NotifyWidgetBase.cs">
       <SubType>UserControl</SubType>
     </Compile>
