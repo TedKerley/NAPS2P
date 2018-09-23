@@ -1,6 +1,8 @@
-// <copyright file="Offset.cs" company="High Quality Solutions">
-//     Copyright (c)  High Quality Solutions Limited. All rights reserved.
-// </copyright>
+// --------------------------------------------------------------------------------
+//  <copyright file="Offset.cs" company="NAPS2 Development Team">
+//     Copyright 2012-2018 Ben Olden-Cooligan and contributors. All rights reserved.   
+//  </copyright>
+// --------------------------------------------------------------------------------
 
 namespace NAPS2.Scan.Wia
 {
@@ -75,6 +77,17 @@ namespace NAPS2.Scan.Wia
         }
 
         /// <summary>
+        ///     Sets all offsets to zero.
+        /// </summary>
+        public void Clear()
+        {
+            this.Top = 0;
+            this.Bottom = 0;
+            this.Left = 0;
+            this.Right = 0;
+        }
+
+        /// <summary>
         ///     Clones this instance.
         /// </summary>
         /// <returns>Clone of this instance.</returns>
@@ -91,7 +104,11 @@ namespace NAPS2.Scan.Wia
         /// <returns>Scaled offset.</returns>
         public Offset Scale(double xScale, double yScale)
         {
-            return new Offset((int) (this.Top * yScale), (int) (this.Bottom * yScale), (int) (this.Left * xScale), (int) (this.Right * xScale));
+            return new Offset(
+                (int)(this.Top * yScale),
+                (int)(this.Bottom * yScale),
+                (int)(this.Left * xScale),
+                (int)(this.Right * xScale));
         }
 
         /// <summary>
@@ -102,17 +119,6 @@ namespace NAPS2.Scan.Wia
         public Offset Scale(double scale)
         {
             return this.Scale(scale, scale);
-        }
-
-        /// <summary>
-        /// Sets all offsets to zero.
-        /// </summary>
-        public void Clear()
-        {
-            this.Top = 0;
-            this.Bottom = 0;
-            this.Left = 0;
-            this.Right = 0;
         }
     }
 }

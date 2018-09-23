@@ -1,6 +1,8 @@
-// <copyright file="FPreviewScan.cs" company="High Quality Solutions">
-//     Copyright (c)  High Quality Solutions Limited. All rights reserved.
-// </copyright>
+// --------------------------------------------------------------------------------
+//  <copyright file="FPreviewScan.cs" company="NAPS2 Development Team">
+//     Copyright 2012-2018 Ben Olden-Cooligan and contributors. All rights reserved.   
+//  </copyright>
+// --------------------------------------------------------------------------------
 
 namespace NAPS2.WinForms
 {
@@ -8,7 +10,6 @@ namespace NAPS2.WinForms
     using System.Collections.Generic;
     using System.Drawing;
     using System.Threading.Tasks;
-    using System.Windows.Forms;
 
     using NAPS2.Config;
     using NAPS2.Scan;
@@ -38,7 +39,6 @@ namespace NAPS2.WinForms
         private Offset previousOffsets = null;
 
         public FPreviewScan(
-          
             ThumbnailRenderer thumbnailRenderer,
             ScannedImageRenderer scannedImageRenderer,
             IScanPerformer scanPerformer,
@@ -51,14 +51,12 @@ namespace NAPS2.WinForms
             this.profileManager = profileManager;
             this.appConfigManager = appConfigManager;
 
-
             this.InitializeComponent();
             this.imageAreaSelector.ImagePreviewHelper = new ImagePreviewHelper(
                 this.scannedImageRenderer,
                 this,
                 this.imageAreaSelector.RenderPreview,
                 this.imageAreaSelector.PictureBox);
-
         }
 
         public Action<ScannedImage> ImageCallback { get; set; }
@@ -83,9 +81,19 @@ namespace NAPS2.WinForms
             this.Visible = true;
 
             this.layoutManager = new LayoutManager(this).Bind(this.imageAreaSelector).WidthToForm().HeightToForm()
-                .Bind(this.btnDone, this.btnReset, this.btnPreview, this.btnScan, this.btnPreviewPrevious, this.chkUseScanner).TopToForm()
-                .Bind(this.btnPreview, this.btnScan, this.btnReset, this.btnDone, this.btnPreviewPrevious, this.chkUseScanner).RightToForm()
-                .Activate();
+                .Bind(
+                    this.btnDone,
+                    this.btnReset,
+                    this.btnPreview,
+                    this.btnScan,
+                    this.btnPreviewPrevious,
+                    this.chkUseScanner).TopToForm().Bind(
+                    this.btnPreview,
+                    this.btnScan,
+                    this.btnReset,
+                    this.btnDone,
+                    this.btnPreviewPrevious,
+                    this.chkUseScanner).RightToForm().Activate();
 
             this.Reset();
         }
@@ -115,6 +123,42 @@ namespace NAPS2.WinForms
             await this.ScanAsync(this.ImageCallback, preview: false, usePrevious: false);
         }
 
+        private async Task CropImageToRequestedSizeAsync(
+            ScanProfile scanProfile,
+            int dpi,
+            Offset offsetsToUse,
+            ScannedImage scan)
+        {
+            int requestedImageWidth = (int)(scanProfile.PageSize.PageDimensions().WidthInInches() * dpi
+                                            - offsetsToUse.Left - offsetsToUse.Right);
+
+            int requestedImageHeight = (int)(scanProfile.PageSize.PageDimensions().HeightInInches() * dpi
+                                             - offsetsToUse.Top - offsetsToUse.Bottom);
+
+            using (Bitmap bitmap = (Bitmap)Image.FromStream(await this.scannedImageRenderer.RenderToStream(scan)))
+            {
+                int widthOversize = bitmap.Width - requestedImageWidth;
+                int heightOversize = bitmap.Height - requestedImageHeight;
+                if (widthOversize > SCAN_OVERSIZE_TOLERANCE || heightOversize > SCAN_OVERSIZE_TOLERANCE)
+                {
+                    scan.AddTransform(new CropTransform() { Bottom = heightOversize, Right = widthOversize });
+                    scan.SetThumbnail(await this.thumbnailRenderer.RenderThumbnail(scan));
+                }
+            }
+        }
+
+        private Offset GenerateNewOffsets(bool usePrevious)
+        {
+            Offset offsetsToUse = usePrevious
+                                      ? this.previousOffsets
+                                      :
+                                      this.previousOffsets == null || this.previousOffsets.IsEmpty
+                                          ?
+                                          this.imageAreaSelector.Offsets.Clone()
+                                          : this.previousOffsets.Append(this.imageAreaSelector.Offsets);
+            return offsetsToUse;
+        }
+
         private async Task PreviewScanAsync(bool usePrevious)
         {
             ScannedImage newImage = null;
@@ -122,8 +166,6 @@ namespace NAPS2.WinForms
 
             try
             {
-                
-
                 if (usePrevious || this.chkUseScanner.Checked)
                 {
                     this.previousOffsets = await this.ScanAsync(
@@ -132,7 +174,6 @@ namespace NAPS2.WinForms
                                                usePrevious: usePrevious);
 
                     // Disconnect bitmap from underlying file, allowing recovery file dispose to delete the associated file.
-
                     bitmap = (Bitmap)Image.FromStream(await this.scannedImageRenderer.RenderToStream(newImage));
 
                     this.imageAreaSelector.SetImage(bitmap);
@@ -156,14 +197,11 @@ namespace NAPS2.WinForms
 
                 this.UpdateLayout();
             }
-            
             finally
             {
                 bitmap?.Dispose();
                 newImage?.Dispose();
             }
-
-           
         }
 
         private void Reset()
@@ -209,38 +247,6 @@ namespace NAPS2.WinForms
             onImageAction(scan);
 
             return offsetsToUse;
-        }
-
-        private Offset GenerateNewOffsets(bool usePrevious)
-        {
-            Offset offsetsToUse = usePrevious
-                                      ? this.previousOffsets
-                                      :
-                                      this.previousOffsets == null || this.previousOffsets.IsEmpty
-                                          ?
-                                          this.imageAreaSelector.Offsets.Clone()
-                                          : this.previousOffsets.Append(this.imageAreaSelector.Offsets);
-            return offsetsToUse;
-        }
-
-        private async Task CropImageToRequestedSizeAsync(ScanProfile scanProfile, int dpi, Offset offsetsToUse, ScannedImage scan)
-        {
-            int requestedImageWidth = (int)(scanProfile.PageSize.PageDimensions().WidthInInches() * dpi 
-                       - offsetsToUse.Left - offsetsToUse.Right);
-
-            int requestedImageHeight = (int)(scanProfile.PageSize.PageDimensions().HeightInInches() * dpi 
-                      - offsetsToUse.Top - offsetsToUse.Bottom);
-
-            using (Bitmap bitmap = (Bitmap)Image.FromStream(await this.scannedImageRenderer.RenderToStream(scan)))
-            {
-                int widthOversize = bitmap.Width - requestedImageWidth;
-                int heightOversize = bitmap.Height - requestedImageHeight;
-                if (widthOversize > SCAN_OVERSIZE_TOLERANCE || heightOversize > SCAN_OVERSIZE_TOLERANCE)
-                {
-                    scan.AddTransform(new CropTransform() { Bottom = heightOversize, Right = widthOversize });
-                    scan.SetThumbnail(await this.thumbnailRenderer.RenderThumbnail(scan));
-                }
-            }
         }
 
         private void UpdateLayout()

@@ -18,12 +18,12 @@
         {
             this.tbRight = new System.Windows.Forms.TrackBar();
             this.tbBottom = new System.Windows.Forms.TrackBar();
-            this.pictureBox = new System.Windows.Forms.PictureBox();
+            this.PictureBox = new System.Windows.Forms.PictureBox();
             this.tbLeft = new System.Windows.Forms.TrackBar();
             this.tbTop = new System.Windows.Forms.TrackBar();
             ((System.ComponentModel.ISupportInitialize)(this.tbRight)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbBottom)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.PictureBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbLeft)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbTop)).BeginInit();
             this.SuspendLayout();
@@ -53,18 +53,18 @@
             // 
             // pictureBox
             // 
-            this.pictureBox.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.pictureBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBox.Cursor = System.Windows.Forms.Cursors.Cross;
-            this.pictureBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.pictureBox.Location = new System.Drawing.Point(38, 54);
-            this.pictureBox.Name = "pictureBox";
-            this.pictureBox.Size = new System.Drawing.Size(395, 406);
-            this.pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBox.TabIndex = 6;
-            this.pictureBox.TabStop = false;
-            this.pictureBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseDown);
-            this.pictureBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseMove);
+            this.PictureBox.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.PictureBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.PictureBox.Cursor = System.Windows.Forms.Cursors.Cross;
+            this.PictureBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.PictureBox.Location = new System.Drawing.Point(38, 54);
+            this.PictureBox.Name = "PictureBox";
+            this.PictureBox.Size = new System.Drawing.Size(395, 406);
+            this.PictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.PictureBox.TabIndex = 6;
+            this.PictureBox.TabStop = false;
+            this.PictureBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseDown);
+            this.PictureBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseMove);
             // 
             // tbLeft
             // 
@@ -95,14 +95,14 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.tbRight);
             this.Controls.Add(this.tbBottom);
-            this.Controls.Add(this.pictureBox);
+            this.Controls.Add(this.PictureBox);
             this.Controls.Add(this.tbTop);
             this.Controls.Add(this.tbLeft);
             this.Name = "ImageAreaSelector";
             this.Size = new System.Drawing.Size(470, 515);
             ((System.ComponentModel.ISupportInitialize)(this.tbRight)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbBottom)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.PictureBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbLeft)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.tbTop)).EndInit();
             this.ResumeLayout(false);
@@ -114,7 +114,7 @@
 
         private System.Windows.Forms.TrackBar tbRight;
         private System.Windows.Forms.TrackBar tbBottom;
-        private System.Windows.Forms.PictureBox pictureBox;
+
         private System.Windows.Forms.TrackBar tbLeft;
         private System.Windows.Forms.TrackBar tbTop;
     }

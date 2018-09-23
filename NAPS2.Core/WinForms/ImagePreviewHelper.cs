@@ -1,6 +1,8 @@
-// <copyright file="ImagePreviewHelper.cs" company="High Quality Solutions">
-//     Copyright (c)  High Quality Solutions Limited. All rights reserved.
-// </copyright>
+// --------------------------------------------------------------------------------
+//  <copyright file="ImagePreviewHelper.cs" company="NAPS2 Development Team">
+//     Copyright 2012-2018 Ben Olden-Cooligan and contributors. All rights reserved.   
+//  </copyright>
+// --------------------------------------------------------------------------------
 
 namespace NAPS2.WinForms
 {
@@ -15,29 +17,96 @@ namespace NAPS2.WinForms
 
     public class ImagePreviewHelper : IDisposable
     {
-        class BitmapReference
+        private readonly Control parentControl;
+
+        private readonly ScannedImageRenderer scannedImageRenderer;
+
+        private bool previewOutOfDate;
+
+        private Timer previewTimer;
+
+        private bool working;
+
+        private BitmapReference workingImage = new BitmapReference();
+
+        private BitmapReference workingImage2 = new BitmapReference();
+
+        public ImagePreviewHelper(
+            ScannedImageRenderer scannedImageRenderer,
+            Control parentControl,
+            Func<Bitmap> renderPreviewFunc,
+            PictureBox pictureBox)
         {
-            private Bitmap bitmap;
+            this.RenderPreviewFunc = renderPreviewFunc;
+            this.PictureBox = pictureBox;
+            this.scannedImageRenderer = scannedImageRenderer;
+            this.parentControl = parentControl;
+        }
 
-            public Bitmap Value
-            {
-                get => this.bitmap;
-                set 
-            {
-                if (!ReferenceEquals(this.bitmap, value))
-                {
-                    this.bitmap?.Dispose();
-                }
+        public Size CurrentImageSize => this.workingImage.Value.Size;
 
-                this.bitmap = value;
+        public Func<Bitmap> RenderPreviewFunc { get; set; }
+
+        public Bitmap WorkingImage
+        {
+            get => this.workingImage.Value;
+            private set
+            {
+                this.workingImage.Value = value;
+                this.workingImage2.Value = (Bitmap)value.Clone();
             }
         }
 
-            // TODO correct dispose pattern.
-            public void Dispose()
+        public Bitmap WorkingImage2
+        {
+            get => this.workingImage2.Value;
+            private set => this.workingImage2.Value = value;
+        }
+
+        private PictureBox PictureBox { get; }
+
+        // TODO correct dispose pattern.
+        public void Dispose()
+        {
+            this.workingImage.Dispose();
+            this.WorkingImage2.Dispose();
+            this.previewTimer?.Dispose();
+        }
+
+        public Bitmap GetImage() => (Bitmap)this.WorkingImage.Clone();
+
+        public double GetImageHeightRatio()
+        {
+            if (this.WorkingImage == null)
             {
-                this.bitmap?.Dispose();
+                return 1;
             }
+
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
+            double pboxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
+            if (pboxAspect > imageAspect)
+            {
+                return 1;
+            }
+
+            return pboxAspect / imageAspect;
+        }
+
+        public double GetImageWidthRatio()
+        {
+            if (this.WorkingImage == null)
+            {
+                return 1;
+            }
+
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
+            double pboxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
+            if (imageAspect > pboxAspect)
+            {
+                return 1;
+            }
+
+            return imageAspect / pboxAspect;
         }
 
         public void SetBlankImage(int widthInPixels, int heightInPixels, Color colour)
@@ -53,8 +122,6 @@ namespace NAPS2.WinForms
             }
         }
 
-        public Size CurrentImageSize => this.workingImage.Value.Size;
-
         public void SetImage(Bitmap newImage)
         {
             this.WorkingImage = newImage;
@@ -64,59 +131,6 @@ namespace NAPS2.WinForms
             // Set the picture box image to a clone, to avoid "the object is in use elsewhere" error.
             this.PictureBox.Image = (Image)this.WorkingImage.Clone();
         }
-
-        public Bitmap WorkingImage
-        {
-            get => this.workingImage.Value;
-            private set 
-
-        {
-            this.workingImage.Value = value;
-            this.workingImage2.Value = (Bitmap)value.Clone();
-        }
-    }
-
-        public Bitmap WorkingImage2
-        {
-            get => this.workingImage2.Value;
-            private set => this.workingImage2.Value = value;
-        }
-
-        private readonly Control parentControl;
-
-        private readonly ScannedImageRenderer scannedImageRenderer;
-
-        private bool previewOutOfDate;
-
-        private Timer previewTimer;
-
-        private bool working;
-
-        private BitmapReference workingImage = new BitmapReference();
-
-        private BitmapReference workingImage2 = new BitmapReference();
-
-        public ImagePreviewHelper(ScannedImageRenderer scannedImageRenderer, Control parentControl, Func<Bitmap> renderPreviewFunc, PictureBox pictureBox)
-        {
-            this.RenderPreviewFunc = renderPreviewFunc;
-            PictureBox = pictureBox;
-            this.scannedImageRenderer = scannedImageRenderer;
-            this.parentControl = parentControl;
-        }
-
-        public Func<Bitmap> RenderPreviewFunc { get; set; }
-
-        private PictureBox PictureBox { get; }
-
-        // TODO correct dispose pattern.
-        public void Dispose()
-        {
-            this.workingImage.Dispose();
-            this.WorkingImage2.Dispose();
-            this.previewTimer?.Dispose();
-        }
-
-        public Bitmap GetImage() => (Bitmap)this.WorkingImage.Clone();
 
         public async Task SetImageAsync(ScannedImage image, int maxDimen = 0)
         {
@@ -153,40 +167,29 @@ namespace NAPS2.WinForms
             this.previewOutOfDate = true;
         }
 
-        public double GetImageHeightRatio()
+        class BitmapReference
         {
-            if (this.WorkingImage == null)
+            private Bitmap bitmap;
+
+            public Bitmap Value
             {
-                return 1;
+                get => this.bitmap;
+                set
+                {
+                    if (!ReferenceEquals(this.bitmap, value))
+                    {
+                        this.bitmap?.Dispose();
+                    }
+
+                    this.bitmap = value;
+                }
             }
 
-            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
-            double pboxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
-            if (pboxAspect > imageAspect)
+            // TODO correct dispose pattern.
+            public void Dispose()
             {
-                return 1;
+                this.bitmap?.Dispose();
             }
-
-            return pboxAspect / imageAspect;
         }
-
-        public double GetImageWidthRatio()
-        {
-            if (this.WorkingImage == null)
-            {
-                return 1;
-            }
-
-            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
-            double pboxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
-            if (imageAspect > pboxAspect)
-            {
-                return 1;
-            }
-
-            return imageAspect / pboxAspect;
-        }
-
-
     }
 }
