@@ -10,8 +10,6 @@ using NAPS2.Util;
 
 namespace NAPS2.WinForms
 {
-    using NAPS2.Scan.Wia;
-
     partial class FCrop : ImageForm
     {
         private static CropTransform _lastTransform;

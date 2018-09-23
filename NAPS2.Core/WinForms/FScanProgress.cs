@@ -7,8 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Lang.Resources;
-using NAPS2.Scan.Wia;
-using NAPS2.Util;
 
 namespace NAPS2.WinForms
 {

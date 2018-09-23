@@ -4,11 +4,14 @@
 //  </copyright>
 // --------------------------------------------------------------------------------
 
-namespace NAPS2.Scan.Wia
+namespace NAPS2.Scan
 {
+    using System;
+
     /// <summary>
     ///     Defines offsets from a rectangle boundary.
     /// </summary>
+    [Serializable]
     public class Offset
     {
         /// <summary>

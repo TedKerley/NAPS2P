@@ -15,8 +15,6 @@ namespace NAPS2.Scan
     /// A high-level interface used for scanning.
     /// This abstracts away the logic of obtaining and using an instance of IScanDriver.
     /// </summary>
-    using NAPS2.Scan.Wia;
-
     public class ScanPerformer : IScanPerformer
     {
         private readonly IScanDriverFactory driverFactory;

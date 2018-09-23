@@ -190,6 +190,7 @@
     <Compile Include="Scan\Images\ScannedImageSource.cs" />
     <Compile Include="Scan\KeyValueScanOptions.cs" />
     <Compile Include="Scan\Exceptions\SaneNotAvailableException.cs" />
+    <Compile Include="Scan\Offset.cs" />
     <Compile Include="Scan\Sane\SaneOption.cs" />
     <Compile Include="Scan\Sane\SaneOptionCollection.cs" />
     <Compile Include="Scan\Sane\SaneOptionParser.cs" />
@@ -308,7 +309,6 @@
     <Compile Include="Scan\Twain\Legacy\TwainDefs.cs" />
     <Compile Include="Scan\Twain\Legacy\TwainLib.cs" />
     <Compile Include="Scan\Twain\TwainWrapper.cs" />
-    <Compile Include="Scan\Wia\Offset.cs" />
     <Compile Include="Scan\Images\Transforms\UnsafeImageOps.cs" />
     <Compile Include="Util\ChangeTracker.cs" />
     <Compile Include="Util\ChaosMonkey.cs" />

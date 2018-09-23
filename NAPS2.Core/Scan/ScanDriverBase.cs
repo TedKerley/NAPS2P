@@ -8,8 +8,6 @@ using NAPS2.Scan.Images;
 
 namespace NAPS2.Scan
 {
-    using NAPS2.Scan.Wia;
-
     /// <summary>
     /// A base class for IScanDriver implementing common error handling.
     /// </summary>
@@ -24,8 +22,6 @@ namespace NAPS2.Scan
         public ScanParams ScanParams { get; set; }
 
         public ScanDevice ScanDevice { get; set; }
-
-        public Offset Offsets { get; set; }
 
         public IWin32Window DialogParent { get; set; }
 

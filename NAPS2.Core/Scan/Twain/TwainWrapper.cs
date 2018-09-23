@@ -388,14 +388,24 @@ namespace NAPS2.Scan.Twain
 
             ds.Capabilities.ICapUnits.SetValue(Unit.Inches);
             ds.DGImage.ImageLayout.Get(out TWImageLayout imageLayout);
+
+            int dpi = scanProfile.Resolution.ToIntDpi();
+            Offset offsets = scanParams.Offsets;
+           
+            // Note - the frame dimensions are in inches, so offsets
+            // need to be converted by dividing by the dots per inch value.
             imageLayout.Frame = new TWFrame
-            {
-                Left = horizontalOffset,
-                Right = horizontalOffset + pageWidth,
-                Top = 0,
-                Bottom = pageHeight
-            };
+                {
+                    Left = horizontalOffset + (float)offsets.Left / dpi,
+                    Right = horizontalOffset + pageWidth - (float)offsets.Right / dpi,
+                    Top = (float)offsets.Top / dpi,
+                    Bottom = pageHeight - (float) offsets.Bottom / dpi
+                };
+
             ds.DGImage.ImageLayout.Set(imageLayout);
+
+            Debug.WriteLine($"Twain frame: {imageLayout.Frame.Left} {imageLayout.Frame.Right} {imageLayout.Frame.Top} {imageLayout.Frame.Bottom}");
+
 
             // Brightness, Contrast
             // Conveniently, the range of values used in settings (-1000 to +1000) is the same range TWAIN supports
@@ -406,7 +416,7 @@ namespace NAPS2.Scan.Twain
             }
 
             // Resolution
-            int dpi = scanProfile.Resolution.ToIntDpi();
+            //int dpi = scanProfile.Resolution.ToIntDpi();
             ds.Capabilities.ICapXResolution.SetValue(dpi);
             ds.Capabilities.ICapYResolution.SetValue(dpi);
 
