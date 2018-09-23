@@ -37,8 +37,8 @@ namespace NAPS2.WinForms
             // 
             // imageAreaSelector
             // 
-            resources.ApplyResources(this.imageAreaSelector, "imageAreaSelector");
             this.imageAreaSelector.ImagePreviewHelper = null;
+            resources.ApplyResources(this.imageAreaSelector, "imageAreaSelector");
             this.imageAreaSelector.Name = "imageAreaSelector";
             // 
             // FCrop

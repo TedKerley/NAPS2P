@@ -117,16 +117,12 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="imageAreaSelector.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>None</value>
-  </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="imageAreaSelector.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 2</value>
+    <value>2, -1</value>
   </data>
   <data name="imageAreaSelector.Size" type="System.Drawing.Size, System.Drawing">
-    <value>598, 518</value>
+    <value>317, 245</value>
   </data>
   <assembly alias="mscorlib" name="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="imageAreaSelector.TabIndex" type="System.Int32, mscorlib">
@@ -136,7 +132,7 @@
     <value>imageAreaSelector</value>
   </data>
   <data name="&gt;&gt;imageAreaSelector.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.ImageAreaSelector, NAPS2.Core, Version=5.8.2.35873, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.ImageAreaSelector, NAPS2.Core, Version=5.8.2.24110, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;imageAreaSelector.Parent" xml:space="preserve">
     <value>$this</value>
@@ -151,7 +147,7 @@
     <value>6, 13</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>616, 587</value>
+    <value>320, 311</value>
   </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -177,6 +173,10 @@
         //8AAP//AAD//w==
 </value>
   </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="$this.StartPosition" type="System.Windows.Forms.FormStartPosition, System.Windows.Forms">
+    <value>WindowsDefaultLocation</value>
+  </data>
   <data name="$this.Text" xml:space="preserve">
     <value>Crop</value>
   </data>
@@ -184,6 +184,6 @@
     <value>FCrop</value>
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
-    <value>NAPS2.WinForms.ImageForm, NAPS2.Core, Version=5.8.2.35873, Culture=neutral, PublicKeyToken=null</value>
+    <value>NAPS2.WinForms.ImageForm, NAPS2.Core, Version=5.8.2.24110, Culture=neutral, PublicKeyToken=null</value>
   </data>
 </root>
