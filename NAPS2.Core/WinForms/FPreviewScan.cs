@@ -232,7 +232,15 @@ namespace NAPS2.WinForms
             // Need a local copy to crop width to the correct size
             ScannedImage scan = null;
 
+            // Set the scan resolution - rather than change all of the underlying code to use the preview
+            // resolution if doing a preview scan, just set the resolution in the cloned profile.
             scanProfile.Resolution = preview ? scanProfile.PrevewResolution : scanProfile.Resolution;
+
+            // Perform the scan - TODO correct the scaling - smaller images are appearing larger.
+            // TODO - correct IDisposable implementations in changed code (not here).
+            // TODO - fix error on normal TWAIN scan (not preview).
+            // TODO - fix thumbnail image scaling after scan - for both twain and wia.
+            // TODO - fix main scan - doesn't work in twain (maybe because offsets are not valid).
             await this.scanPerformer.PerformScan(
                 scanProfile,
                 new ScanParams() { Offsets = offsetsToUse },
