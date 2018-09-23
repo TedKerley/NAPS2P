@@ -97,14 +97,7 @@ namespace NAPS2.WinForms
             this.Offsets.Clear();
 
             
-            this.ImagePreviewHelper.WorkingImage = (Bitmap)newImageBitmap.Clone();
-
-           
-
-            this.pictureBox.Image?.Dispose();
-
-            // Set the picture box image to a clone, to avoid "the object is in use elsewhere" error.
-            this.pictureBox.Image = (Image)newImageBitmap.Clone();
+            this.ImagePreviewHelper.SetImage((Bitmap)newImageBitmap.Clone());
 
             this.UpdateLayout();
             this.UpdateCropBounds();

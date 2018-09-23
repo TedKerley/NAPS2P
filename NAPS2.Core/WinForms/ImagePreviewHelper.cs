@@ -49,12 +49,17 @@ namespace NAPS2.WinForms
                     g.Clear(colour);
                 }
 
-                this.WorkingImage = (Bitmap)bitmap.Clone();
-              
-
+                this.SetImage((Bitmap)bitmap.Clone());
             }
+        }
 
-           this.PictureBox.Image?.Dispose();
+        public Size CurrentImageSize => this.workingImage.Value.Size;
+
+        public void SetImage(Bitmap newImage)
+        {
+            this.WorkingImage = newImage;
+
+            this.PictureBox.Image?.Dispose();
 
             // Set the picture box image to a clone, to avoid "the object is in use elsewhere" error.
             this.PictureBox.Image = (Image)this.WorkingImage.Clone();
@@ -63,7 +68,7 @@ namespace NAPS2.WinForms
         public Bitmap WorkingImage
         {
             get => this.workingImage.Value;
-            set 
+            private set 
 
         {
             this.workingImage.Value = value;
@@ -148,6 +153,40 @@ namespace NAPS2.WinForms
             this.previewOutOfDate = true;
         }
 
-        
+        public double GetImageHeightRatio()
+        {
+            if (this.WorkingImage == null)
+            {
+                return 1;
+            }
+
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
+            double pboxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
+            if (pboxAspect > imageAspect)
+            {
+                return 1;
+            }
+
+            return pboxAspect / imageAspect;
+        }
+
+        public double GetImageWidthRatio()
+        {
+            if (this.WorkingImage == null)
+            {
+                return 1;
+            }
+
+            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
+            double pboxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
+            if (imageAspect > pboxAspect)
+            {
+                return 1;
+            }
+
+            return imageAspect / pboxAspect;
+        }
+
+
     }
 }
