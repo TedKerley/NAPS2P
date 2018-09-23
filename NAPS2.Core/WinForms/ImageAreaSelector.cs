@@ -130,8 +130,8 @@ namespace NAPS2.WinForms
 
         public PictureBox PictureBox => this.pictureBox;
 
-      
-        private double GetImageHeightRatio()
+
+        private double GetImageRatio(bool isWidthRatio)
         {
             if (this.WorkingImage == null)
             {
@@ -139,30 +139,27 @@ namespace NAPS2.WinForms
             }
 
             double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
-            double pboxAspect = this.pictureBox.Width / (double)this.pictureBox.Height;
-            if (pboxAspect > imageAspect)
+            double pictureBoxAspect = this.PictureBox.Width / (double)this.PictureBox.Height;
+
+            double leftValue = isWidthRatio ? imageAspect : pictureBoxAspect;
+            double rightValue = isWidthRatio ? pictureBoxAspect : imageAspect;
+
+            if (leftValue > rightValue)
             {
                 return 1;
             }
 
-            return pboxAspect / imageAspect;
+            return leftValue / rightValue;
+        }
+
+        private double GetImageHeightRatio()
+        {
+            return this.GetImageRatio(isWidthRatio: false);
         }
 
         private double GetImageWidthRatio()
         {
-            if (this.WorkingImage == null)
-            {
-                return 1;
-            }
-
-            double imageAspect = this.WorkingImage.Width / (double)this.WorkingImage.Height;
-            double pboxAspect = this.pictureBox.Width / (double)this.pictureBox.Height;
-            if (imageAspect > pboxAspect)
-            {
-                return 1;
-            }
-
-            return imageAspect / pboxAspect;
+            return GetImageRatio(isWidthRatio: true);
         }
 
         private void pictureBox_MouseDown(object sender, MouseEventArgs e)
