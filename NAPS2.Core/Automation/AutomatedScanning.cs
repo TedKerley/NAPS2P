@@ -46,6 +46,7 @@ namespace NAPS2.Automation
         private int totalPagesScanned;
         private DateTime startTime;
         private List<string> actualOutputPaths;
+        private OcrParams ocrParams;
 
         public AutomatedScanning(AutomatedScanningOptions options, IProfileManager profileManager, IScanPerformer scanPerformer, IErrorOutput errorOutput, IEmailProviderFactory emailProviderFactory, IScannedImageImporter scannedImageImporter, IUserConfigManager userConfigManager, PdfSettingsContainer pdfSettingsContainer, FileNamePlaceholders fileNamePlaceholders, ImageSettingsContainer imageSettingsContainer, IOperationFactory operationFactory, AppConfigManager appConfigManager, OcrManager ocrManager, IFormFactory formFactory, GhostscriptManager ghostscriptManager)
         {
@@ -109,6 +110,8 @@ namespace NAPS2.Automation
                     await ImportImages();
                 }
 
+                ConfigureOcr();
+
                 if (options.Number > 0)
                 {
                     if (!GetProfile(out ScanProfile profile))
@@ -148,6 +151,14 @@ namespace NAPS2.Automation
                     Console.ReadLine();
                 }
             }
+        }
+
+        private void ConfigureOcr()
+        {
+            bool canUseOcr = IsPdfFile(options.OutputPath) || IsPdfFile(options.EmailFileName);
+            bool useOcr = canUseOcr && !options.DisableOcr && (options.EnableOcr || options.OcrLang != null || userConfigManager.Config.EnableOcr || appConfigManager.Config.OcrState == OcrState.Enabled);
+            string ocrLanguageCode = useOcr ? (options.OcrLang ?? ocrManager.DefaultParams?.LanguageCode) : null;
+            ocrParams = new OcrParams(ocrLanguageCode, ocrManager.DefaultParams?.Mode ?? OcrMode.Default);
         }
 
         private void InstallComponents()
@@ -352,7 +363,7 @@ namespace NAPS2.Automation
                 }
 
                 OutputVerbose(ConsoleResources.SendingEmail);
-                if (emailProviderFactory.Default.SendEmail(message))
+                if (await emailProviderFactory.Default.SendEmail(message, (j, k) => { }, CancellationToken.None))
                 {
                     OutputVerbose(ConsoleResources.EmailSent);
                 }
@@ -418,6 +429,7 @@ namespace NAPS2.Automation
 
         private bool IsPdfFile(string path)
         {
+            if (path == null) return false;
             string extension = Path.GetExtension(path);
             Debug.Assert(extension != null);
             return extension.ToLower() == ".pdf";
@@ -458,7 +470,6 @@ namespace NAPS2.Automation
 
         private async Task ExportToPdf()
         {
-            actualOutputPaths = new List<string>();
             await DoExportToPdf(options.OutputPath, false);
         }
 
@@ -524,12 +535,9 @@ namespace NAPS2.Automation
             }
 
             var pdfSettings = new PdfSettings { Metadata = metadata, Encryption = encryption, Compat = compat };
-
-            bool useOcr = !options.DisableOcr && (options.EnableOcr || options.OcrLang != null || userConfigManager.Config.EnableOcr || appConfigManager.Config.OcrState == OcrState.Enabled);
-            string ocrLanguageCode = useOcr ? (options.OcrLang ?? ocrManager.DefaultParams?.LanguageCode) : null;
-            var ocrParams = new OcrParams(ocrLanguageCode, ocrManager.DefaultParams?.Mode ?? OcrMode.Default);
-
+            
             int scanIndex = 0;
+            actualOutputPaths = new List<string>();
             foreach (var fileContents in scanList)
             {
                 var op = operationFactory.Create<SavePdfOperation>();
@@ -544,7 +552,7 @@ namespace NAPS2.Automation
                 };
                 int digits = (int)Math.Floor(Math.Log10(scanList.Count)) + 1;
                 string actualPath = fileNamePlaceholders.SubstitutePlaceholders(path, startTime, true, scanIndex++, scanList.Count > 1 ? digits : 0);
-                op.Start(actualPath, startTime, fileContents, pdfSettings, ocrParams, email);
+                op.Start(actualPath, startTime, fileContents, pdfSettings, ocrParams, email, null);
                 if (!await op.Success)
                 {
                     return false;
@@ -571,7 +579,7 @@ namespace NAPS2.Automation
                     return;
                 }
             }
-            
+
             totalPagesScanned = 0;
             foreach (int i in Enumerable.Range(1, options.Number))
             {
@@ -583,7 +591,15 @@ namespace NAPS2.Automation
                 OutputVerbose(ConsoleResources.StartingScan, i, options.Number);
                 pagesScanned = 0;
                 scanList.Add(new List<ScannedImage>());
-                await scanPerformer.PerformScan(profile, new ScanParams { NoUI = true, NoAutoSave = !options.AutoSave, DetectPatchCodes = options.SplitPatchT }, null, null, ReceiveScannedImage);
+                var scanParams = new ScanParams
+                {
+                    NoUI = true,
+                    NoAutoSave = !options.AutoSave,
+                    DetectPatchCodes = options.SplitPatchT,
+                    DoOcr = ocrParams?.LanguageCode != null,
+                    OcrParams = ocrParams
+                };
+                await scanPerformer.PerformScan(profile, scanParams, null, null, ReceiveScannedImage);
                 OutputVerbose(ConsoleResources.PagesScanned, pagesScanned);
             }
         }

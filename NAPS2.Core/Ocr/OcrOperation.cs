@@ -8,11 +8,11 @@ using NAPS2.Operation;
 
 namespace NAPS2.Ocr
 {
-    public class OcrResultOperation : OperationBase
+    public class OcrOperation : OperationBase
     {
         private readonly List<Task> workerTasks;
 
-        public OcrResultOperation(List<Task> workerTasks)
+        public OcrOperation(List<Task> workerTasks)
         {
             this.workerTasks = workerTasks;
             ProgressTitle = MiscResources.OcrProgress;
@@ -21,7 +21,8 @@ namespace NAPS2.Ocr
             SkipExitPrompt = true;
             Status = new OperationStatus
             {
-                StatusText = MiscResources.RunningOcr
+                StatusText = MiscResources.RunningOcr,
+                IndeterminateProgress = true
             };
         }
 
@@ -32,21 +33,8 @@ namespace NAPS2.Ocr
 
         public new CancellationToken CancelToken => base.CancelToken;
 
-        public void IncrementMax()
-        {
-            Status.MaxProgress += 1;
-            InvokeStatusChanged();
-        }
+        public new void InvokeStatusChanged() => base.InvokeStatusChanged();
 
-        public void IncrementCurrent()
-        {
-            Status.CurrentProgress += 1;
-            InvokeStatusChanged();
-        }
-
-        public void Finish()
-        {
-            InvokeFinished();
-        }
+        public new void InvokeFinished() => base.InvokeFinished();
     }
 }

@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using NAPS2.Config;
 using NAPS2.Ocr;
 using NAPS2.Operation;
@@ -107,17 +106,17 @@ namespace NAPS2.Scan.Images
         private readonly IOperationProgress operationProgress;
         private readonly AppConfigManager appConfigManager;
         private readonly IUserConfigManager userConfigManager;
-        private readonly OcrResultManager ocrResultManager;
+        private readonly OcrRequestQueue ocrRequestQueue;
         private readonly OcrManager ocrManager;
 
-        public ScannedImageHelper(ThumbnailRenderer thumbnailRenderer, IOperationFactory operationFactory, IOperationProgress operationProgress, AppConfigManager appConfigManager, IUserConfigManager userConfigManager, OcrResultManager ocrResultManager, OcrManager ocrManager)
+        public ScannedImageHelper(ThumbnailRenderer thumbnailRenderer, IOperationFactory operationFactory, IOperationProgress operationProgress, AppConfigManager appConfigManager, IUserConfigManager userConfigManager, OcrRequestQueue ocrRequestQueue, OcrManager ocrManager)
         {
             this.thumbnailRenderer = thumbnailRenderer;
             this.operationFactory = operationFactory;
             this.operationProgress = operationProgress;
             this.appConfigManager = appConfigManager;
             this.userConfigManager = userConfigManager;
-            this.ocrResultManager = ocrResultManager;
+            this.ocrRequestQueue = ocrRequestQueue;
             this.ocrManager = ocrManager;
         }
 
@@ -208,15 +207,41 @@ namespace NAPS2.Scan.Images
             }
         }
 
-        public void RunBackgroundOcr(ScannedImage image, ScanParams scanParams)
+        public bool ShouldDoBackgroundOcr(ScanParams scanParams)
         {
             bool ocrEnabled = ocrManager.DefaultParams != null;
             bool afterScanning = appConfigManager.Config.OcrState == OcrState.Enabled && appConfigManager.Config.OcrDefaultAfterScanning
                                  || appConfigManager.Config.OcrState == OcrState.UserConfig &&
                                  (userConfigManager.Config.OcrAfterScanning ?? appConfigManager.Config.OcrDefaultAfterScanning);
-            if (scanParams.DoOcr ?? (ocrEnabled && afterScanning))
+            return scanParams.DoOcr ?? (ocrEnabled && afterScanning);
+        }
+
+        public string SaveForBackgroundOcr(Bitmap bitmap, ScanParams scanParams)
+        {
+            if (ShouldDoBackgroundOcr(scanParams))
             {
-                ocrResultManager.StartBackground(image.Preserve());
+                string tempPath = Path.Combine(Paths.Temp, Path.GetRandomFileName());
+                bitmap.Save(tempPath);
+                return tempPath;
+            }
+            return null;
+        }
+
+        public void RunBackgroundOcr(ScannedImage image, ScanParams scanParams, string tempPath)
+        {
+            if (ShouldDoBackgroundOcr(scanParams))
+            {
+                using (var snapshot = image.Preserve())
+                {
+                    if (scanParams.DoOcr == true)
+                    {
+                        ocrRequestQueue.QueueForeground(null, snapshot, tempPath, scanParams.OcrParams, scanParams.OcrCancelToken).AssertNoAwait();
+                    }
+                    else
+                    {
+                        ocrRequestQueue.QueueBackground(snapshot, tempPath, scanParams.OcrParams);
+                    }
+                }
             }
         }
 

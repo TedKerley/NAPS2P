@@ -19,6 +19,7 @@ namespace NAPS2.WinForms
         private bool previewOutOfDate;
         private bool working;
         private Timer previewTimer;
+        private bool closed;
 
         private ImageForm()
         {
@@ -89,6 +90,11 @@ namespace NAPS2.WinForms
 
             var maxDimen = Screen.AllScreens.Max(s => Math.Max(s.WorkingArea.Height, s.WorkingArea.Width));
             workingImage = await scannedImageRenderer.Render(Image, maxDimen * 2);
+            if (closed)
+            {
+                workingImage?.Dispose();
+                return;
+            }
             workingImage2 = (Bitmap)workingImage.Clone();
 
             InitTransform();
@@ -151,10 +157,11 @@ namespace NAPS2.WinForms
 
         private void ImageForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            workingImage.Dispose();
-            workingImage2.Dispose();
+            workingImage?.Dispose();
+            workingImage2?.Dispose();
             PictureBox.Image?.Dispose();
             previewTimer?.Dispose();
+            closed = true;
         }
     }
 }

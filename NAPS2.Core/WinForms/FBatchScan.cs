@@ -29,8 +29,7 @@ namespace NAPS2.WinForms
         private readonly DialogHelper dialogHelper;
 
         private bool batchRunning;
-        private bool cancelBatch;
-        private Task batchTask;
+        private CancellationTokenSource cts = new CancellationTokenSource();
 
         public FBatchScan(IProfileManager profileManager, AppConfigManager appConfigManager, IUserConfigManager userConfigManager, BatchScanPerformer batchScanPerformer, IErrorOutput errorOutput, DialogHelper dialogHelper)
         {
@@ -256,7 +255,7 @@ namespace NAPS2.WinForms
 
             // Update state
             batchRunning = true;
-            cancelBatch = false;
+            cts = new CancellationTokenSource();
 
             // Update UI
             btnStart.Enabled = false;
@@ -265,7 +264,7 @@ namespace NAPS2.WinForms
             EnableDisableSettings(false);
 
             // Start the batch
-            batchTask = DoBatchScan();
+            DoBatchScan().AssertNoAwait();
 
             // Save settings for next time (could also do on form close)
             userConfigManager.Config.LastBatchSettings = BatchSettings;
@@ -298,10 +297,10 @@ namespace NAPS2.WinForms
             try
             {
                 await batchScanPerformer.PerformBatchScan(BatchSettings, this,
-                    image => SafeInvoke(() => ImageCallback(image)), ProgressCallback());
+                    image => SafeInvoke(() => ImageCallback(image)), ProgressCallback, cts.Token);
                 SafeInvoke(() =>
                 {
-                    lblStatus.Text = cancelBatch
+                    lblStatus.Text = cts.IsCancellationRequested
                         ? MiscResources.BatchStatusCancelled
                         : MiscResources.BatchStatusComplete;
                 });
@@ -330,7 +329,7 @@ namespace NAPS2.WinForms
             SafeInvoke(() =>
             {
                 batchRunning = false;
-                cancelBatch = false;
+                cts = new CancellationTokenSource();
                 btnStart.Enabled = true;
                 btnCancel.Enabled = true;
                 btnCancel.Text = MiscResources.Close;
@@ -339,19 +338,12 @@ namespace NAPS2.WinForms
             });
         }
 
-        private Func<string, bool> ProgressCallback()
+        private void ProgressCallback(string status)
         {
-            return status =>
+            SafeInvoke(() =>
             {
-                if (!cancelBatch)
-                {
-                    SafeInvoke(() =>
-                    {
-                        lblStatus.Text = status;
-                    });
-                }
-                return !cancelBatch;
-            };
+                lblStatus.Text = status;
+            });
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
@@ -360,7 +352,7 @@ namespace NAPS2.WinForms
             {
                 if (MessageBox.Show(MiscResources.ConfirmCancelBatch, MiscResources.CancelBatch, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
-                    cancelBatch = true;
+                    cts.Cancel();
                     btnCancel.Enabled = false;
                     lblStatus.Text = MiscResources.BatchStatusCancelling;
                 }
@@ -373,7 +365,7 @@ namespace NAPS2.WinForms
 
         private void FBatchScan_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (cancelBatch)
+            if (cts.IsCancellationRequested)
             {
                 // Keep dialog open while cancel is in progress to avoid concurrency issues
                 e.Cancel = true;
