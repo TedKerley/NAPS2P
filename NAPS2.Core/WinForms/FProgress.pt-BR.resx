@@ -15,4 +15,7 @@
   <data name="btnCancel.Text" xml:space="preserve">
     <value>&amp;Cancelar</value>
   </data>
+  <data name="btnRunInBG.Text" xml:space="preserve">
+    <value>&amp;Executar em segundo plano</value>
+  </data>
 </root>

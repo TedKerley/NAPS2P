@@ -15,7 +15,7 @@ namespace NAPS2.DI.EntryPoints
     /// <summary>
     /// The entry point for NAPS2.Worker.exe, an off-process worker.
     ///
-    /// Unlike NAPS2.exe which is restricted by driver use, NAPS2.Worker.exe can run in 64-bit mode on compatible systems.
+    /// NAPS2.Worker.exe runs in 32-bit mode for compatibility with 32-bit TWAIN drivers.
     /// </summary>
     public static class WorkerEntryPoint
     {
@@ -31,6 +31,12 @@ namespace NAPS2.DI.EntryPoints
                 var kernel = new StandardKernel(new CommonModule(), new WinFormsModule());
                 var workerService = kernel.Get<WorkerService>();
 
+                // Expect a single argument, the parent process id
+                if (args.Length != 1 || !int.TryParse(args[0], out int procId) || !IsProcessRunning(procId))
+                {
+                    return;
+                }
+
                 // Set up basic application configuration
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
@@ -39,7 +45,7 @@ namespace NAPS2.DI.EntryPoints
                 // Set up a form for the worker process
                 // A parent form is needed for some operations, namely 64-bit TWAIN scanning
                 var form = new BackgroundForm();
-                workerService.ParentForm = form;
+                Invoker.Current = form;
 
                 // Connect to the main NAPS2 process and listen for assigned work
                 string pipeName = string.Format(WorkerManager.PIPE_NAME_FORMAT, Process.GetCurrentProcess().Id);
@@ -58,6 +64,19 @@ namespace NAPS2.DI.EntryPoints
                 Console.Write('k');
                 Log.FatalException("An error occurred that caused the worker application to close.", ex);
                 Environment.Exit(1);
+            }
+        }
+
+        private static bool IsProcessRunning(int procId)
+        {
+            try
+            {
+                var proc = Process.GetProcessById(procId);
+                return !proc.HasExited;
+            }
+            catch (ArgumentException)
+            {
+                return false;
             }
         }
 

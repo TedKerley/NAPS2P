@@ -21,6 +21,8 @@ namespace NAPS2.DI.EntryPoints
             // Initialize Ninject (the DI framework)
             var kernel = new StandardKernel(new CommonModule(), new WinFormsModule());
 
+            Paths.ClearTemp();
+
             // Parse the command-line arguments and see if we're doing something other than displaying the main form
             var lifecycle = kernel.Get<Lifecycle>();
             lifecycle.ParseArgs(args);
@@ -37,7 +39,9 @@ namespace NAPS2.DI.EntryPoints
 
             // Show the main form
             var formFactory = kernel.Get<IFormFactory>();
-            Application.Run(formFactory.Create<FDesktop>());
+            var desktop = formFactory.Create<FDesktop>();
+            Invoker.Current = desktop;
+            Application.Run(desktop);
         }
 
         private static void UnhandledException(object sender, ThreadExceptionEventArgs threadExceptionEventArgs)

@@ -159,20 +159,22 @@
     <Compile Include="Dependencies\DownloadMirror.cs" />
     <Compile Include="Dependencies\MultiFileExternalComponent.cs" />
     <Compile Include="Dependencies\IExternalComponent.cs" />
+    <Compile Include="ImportExport\Email\Mapi\MapiWrapper.cs" />
     <Compile Include="ImportExport\Pdf\GhostscriptManager.cs" />
     <Compile Include="Ocr\OcrManager.cs" />
     <Compile Include="Ocr\OcrMode.cs" />
     <Compile Include="Ocr\OcrParams.cs" />
     <Compile Include="Ocr\OcrRequest.cs" />
     <Compile Include="Ocr\OcrRequestParams.cs" />
-    <Compile Include="Ocr\OcrResultManager.cs" />
-    <Compile Include="Ocr\OcrResultOperation.cs" />
+    <Compile Include="Ocr\OcrRequestQueue.cs" />
+    <Compile Include="Ocr\OcrOperation.cs" />
     <Compile Include="Ocr\Tesseract400Beta4Engine.cs" />
     <Compile Include="Ocr\TesseractLanguageData.cs" />
     <Compile Include="Ocr\TesseractSystemEngine.cs" />
     <Compile Include="Ocr\Tesseract304XpEngine.cs" />
     <Compile Include="Ocr\Tesseract304Engine.cs" />
     <Compile Include="Ocr\Tesseract302Engine.cs" />
+    <Compile Include="Operation\OperationProgressType.cs" />
     <Compile Include="Platform\ISystemCompat.cs" />
     <Compile Include="Platform\LinuxSystemCompat.cs" />
     <Compile Include="Platform\PlatformCompat.cs" />
@@ -180,11 +182,6 @@
     <Compile Include="Config\KeyboardShortcuts.cs" />
     <Compile Include="Config\OcrState.cs" />
     <Compile Include="Config\SaveButtonDefaultAction.cs" />
-    <Compile Include="ImportExport\Pdf\Fonts.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Fonts.resx</DependentUpon>
-    </Compile>
     <Compile Include="Platform\DefaultRuntimeCompat.cs" />
     <Compile Include="Scan\Exceptions\DriverNotSupportedException.cs" />
     <Compile Include="Scan\Images\ScannedImageSource.cs" />
@@ -198,15 +195,23 @@
     <Compile Include="Scan\Sane\SaneWrapper.cs" />
     <Compile Include="Scan\Wia\WiaApi.mono.cs" />
     <Compile Include="Scan\Wia\WiaState.mono.cs" />
+    <Compile Include="Update\UpdateOperation.cs" />
+    <Compile Include="Update\UpdateInfo.cs" />
+    <Compile Include="Update\UpdateChecker.cs" />
+    <Compile Include="Util\DefaultInvoker.cs" />
     <Compile Include="Util\DeferredAction.cs" />
     <Compile Include="Util\ExceptionExtensions.cs" />
     <Compile Include="Platform\IRuntimeCompat.cs" />
     <Compile Include="Platform\MonoRuntimeCompat.cs" />
     <Compile Include="Util\ExpFallback.cs" />
+    <Compile Include="Util\IInvoker.cs" />
     <Compile Include="Util\ImageExtensions.cs" />
+    <Compile Include="Util\Invoker.cs" />
     <Compile Include="Util\NaturalStringComparer.cs" />
     <Compile Include="Util\ProgressHandler.cs" />
     <Compile Include="Util\SecureString.cs" />
+    <Compile Include="Util\TaskExtensions.cs" />
+    <Compile Include="Util\WebClientExtensions.cs" />
     <Compile Include="Util\Win32Window.cs" />
     <Compile Include="WinForms\FormsExtensions.cs" />
     <Compile Include="WinForms\ImageAreaSelector.cs">
@@ -230,6 +235,9 @@
     </Compile>
     <Compile Include="WinForms\OperationProgressNotifyWidget.Designer.cs">
       <DependentUpon>OperationProgressNotifyWidget.cs</DependentUpon>
+    </Compile>
+    <Compile Include="WinForms\UpdateAvailableNotifyWidget.cs">
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Worker\BackgroundForm.cs">
       <SubType>Form</SubType>
@@ -430,13 +438,10 @@
     <Compile Include="Scan\Stub\StubScanDriver.cs" />
     <Compile Include="Scan\Twain\TwainScanDriver.cs" />
     <Compile Include="Scan\ScanDriverBase.cs" />
-    <Compile Include="Scan\Wia\BackgroundWiaTransfer.cs" />
-    <Compile Include="Scan\Wia\IWiaTransfer.cs" />
     <Compile Include="Scan\Wia\WiaApi.cs" />
     <Compile Include="Scan\Wia\WiaBackgroundEventLoop.cs" />
     <Compile Include="Scan\Wia\WiaScanDriver.cs" />
     <Compile Include="Scan\Wia\WiaState.cs" />
-    <Compile Include="Scan\Wia\ForegroundWiaTransfer.cs" />
     <Compile Include="Operation\OperationErrorEventArgs.cs" />
     <Compile Include="Operation\OperationStatus.cs" />
     <Compile Include="Util\NumberExtensions.cs" />
@@ -663,12 +668,6 @@
     <Compile Include="WinForms\FTwainGui.Designer.cs">
       <DependentUpon>FTwainGui.cs</DependentUpon>
     </Compile>
-    <Compile Include="WinForms\FUpdate.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="WinForms\FUpdate.Designer.cs">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </Compile>
     <Compile Include="WinForms\FViewer.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -870,10 +869,6 @@
     <EmbeddedResource Include="WinForms\ILProfileIcons.resx">
       <DependentUpon>ILProfileIcons.cs</DependentUpon>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ImportExport\Pdf\Fonts.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Fonts.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Lang\LanguageNames.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -5315,132 +5310,6 @@
     <EmbeddedResource Include="WinForms\FTwainGui.zh-TW.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FTwainGui.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.af.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.ar.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.bg.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.ca.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.cs.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.da.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.de.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.el.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.es.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.et.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.fa.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.fi.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.fr.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.he.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.hr.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.hu.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.it.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.ja.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.ko.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.lt.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.lv.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.nb.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.nl.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.nn.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.pl.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.pt-BR.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.pt-PT.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.resx">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.ro.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.ru.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.si.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.sk.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.sl.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.sq.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.sr-Cyrl.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.sr-Latn.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.sv.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.tr.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.uk.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.vi.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.zh-CHS.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="WinForms\FUpdate.zh-TW.resx" Condition="'$(Configuration)' != 'Debug'">
-      <DependentUpon>FUpdate.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="WinForms\FViewer.af.resx" Condition="'$(Configuration)' != 'Debug'">
       <DependentUpon>FViewer.cs</DependentUpon>
     </EmbeddedResource>
@@ -6215,7 +6084,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="ImportExport\Pdf\verdana.ttf" />
     <None Include="Lang\po\af.po" />
     <None Include="Lang\po\ar.po" />
     <None Include="Lang\po\bg.po" />
@@ -6257,6 +6125,7 @@
     <None Include="Lang\po\vi.po" />
     <None Include="Lang\po\zh-CHS.po" />
     <None Include="Lang\po\zh-TW.po" />
+    <None Include="naps2-public.cer" />
     <None Include="packages.config" />
     <None Include="Icons\accept-small.png" />
   </ItemGroup>

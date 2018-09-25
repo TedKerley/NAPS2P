@@ -7,11 +7,14 @@ using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using NAPS2.ImportExport.Email;
+using NAPS2.ImportExport.Email.Mapi;
 using NAPS2.Recovery;
 using NAPS2.Scan;
 using NAPS2.Scan.Images;
 using NAPS2.Scan.Twain;
 using NAPS2.Util;
+using NAPS2.WinForms;
 
 namespace NAPS2.Worker
 {
@@ -25,13 +28,13 @@ namespace NAPS2.Worker
     {
         private readonly TwainWrapper twainWrapper;
         private readonly ThumbnailRenderer thumbnailRenderer;
+        private readonly MapiWrapper mapiWrapper;
 
-        public Form ParentForm { get; set; }
-
-        public WorkerService(TwainWrapper twainWrapper, ThumbnailRenderer thumbnailRenderer)
+        public WorkerService(TwainWrapper twainWrapper, ThumbnailRenderer thumbnailRenderer, MapiWrapper mapiWrapper)
         {
             this.twainWrapper = twainWrapper;
             this.thumbnailRenderer = thumbnailRenderer;
+            this.mapiWrapper = mapiWrapper;
         }
 
         public void Init(string recoveryFolderPath)
@@ -47,20 +50,30 @@ namespace NAPS2.Worker
 
         public void TwainScan(ScanDevice scanDevice, ScanProfile scanProfile, ScanParams scanParams, IntPtr hwnd)
         {
-            try
+            Task.Factory.StartNew(() =>
             {
-                twainWrapper.Scan(hwnd == IntPtr.Zero ? null : new Win32Window(hwnd), true, scanDevice, scanProfile, scanParams, new WorkerImageSource(Callback));
-            }
-            catch (Exception e)
-            {
-                var stream = new MemoryStream();
-                new NetDataContractSerializer().Serialize(stream, e);
-                Callback.Error(stream.ToArray());
-            }
-            finally
-            {
-                Callback.Finish();
-            }
+                try
+                {
+                    var imagePathDict = new Dictionary<ScannedImage, string>();
+                    twainWrapper.Scan(hwnd == IntPtr.Zero ? null : new Win32Window(hwnd), scanDevice, scanProfile, scanParams,
+                        new WorkerImageSource(Callback, imagePathDict), (img, _, path) => imagePathDict.Add(img, path));
+                }
+                catch (Exception e)
+                {
+                    var stream = new MemoryStream();
+                    new NetDataContractSerializer().Serialize(stream, e);
+                    Callback.Error(stream.ToArray());
+                }
+                finally
+                {
+                    Callback.Finish();
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        public MapiSendMailReturnCode SendMapiEmail(EmailMessage message)
+        {
+            return mapiWrapper.SendEmail(message);
         }
 
         public byte[] RenderThumbnail(ScannedImage.Snapshot snapshot, int size)
@@ -82,10 +95,12 @@ namespace NAPS2.Worker
         private class WorkerImageSource : ScannedImageSource.Concrete
         {
             private readonly IWorkerCallback callback;
+            private readonly Dictionary<ScannedImage, string> imagePathDict;
 
-            public WorkerImageSource(IWorkerCallback callback)
+            public WorkerImageSource(IWorkerCallback callback, Dictionary<ScannedImage, string> imagePathDict)
             {
                 this.callback = callback;
+                this.imagePathDict = imagePathDict;
             }
 
             public override void Put(ScannedImage image)
@@ -97,7 +112,7 @@ namespace NAPS2.Worker
                     stream = new MemoryStream();
                     thumb.Save(stream, ImageFormat.Png);
                 }
-                callback.TwainImageReceived(image.RecoveryIndexImage, stream?.ToArray());
+                callback.TwainImageReceived(image.RecoveryIndexImage, stream?.ToArray(), imagePathDict.Get(image));
             }
         }
     }

@@ -79,6 +79,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An error occurred when trying to authorize..
+        /// </summary>
+        internal static string AuthError {
+            get {
+                return ResourceManager.GetString("AuthError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Deskewing....
         /// </summary>
         internal static string AutoDeskewing {
@@ -102,15 +111,6 @@ namespace NAPS2.Lang.Resources {
         internal static string AutoSaveError {
             get {
                 return ResourceManager.GetString("AutoSaveError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Automatic Updates.
-        /// </summary>
-        internal static string AutoUpdates {
-            get {
-                return ResourceManager.GetString("AutoUpdates", resourceCulture);
             }
         }
         
@@ -210,6 +210,15 @@ namespace NAPS2.Lang.Resources {
         internal static string CancelBatch {
             get {
                 return ResourceManager.GetString("CancelBatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checking....
+        /// </summary>
+        internal static string CheckingForUpdates {
+            get {
+                return ResourceManager.GetString("CheckingForUpdates", resourceCulture);
             }
         }
         
@@ -430,24 +439,6 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Download.
-        /// </summary>
-        internal static string Download {
-            get {
-                return ResourceManager.GetString("Download", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Download and Install.
-        /// </summary>
-        internal static string DownloadAndInstall {
-            get {
-                return ResourceManager.GetString("DownloadAndInstall", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Download Error.
         /// </summary>
         internal static string DownloadError {
@@ -493,20 +484,20 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Do you want NAPS2 to automatically check for updates?.
-        /// </summary>
-        internal static string EnableAutoUpdates {
-            get {
-                return ResourceManager.GetString("EnableAutoUpdates", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
         internal static string Error {
             get {
                 return ResourceManager.GetString("Error", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An error occurred when trying to send the email..
+        /// </summary>
+        internal static string ErrorEmailing {
+            get {
+                return ResourceManager.GetString("ErrorEmailing", resourceCulture);
             }
         }
         
@@ -727,6 +718,15 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Install {0}.
+        /// </summary>
+        internal static string Install {
+            get {
+                return ResourceManager.GetString("Install", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Installation Complete.
         /// </summary>
         internal static string InstallComplete {
@@ -835,11 +835,11 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not Now.
+        ///   Looks up a localized string similar to No updates available..
         /// </summary>
-        internal static string NotNow {
+        internal static string NoUpdates {
             get {
-                return ResourceManager.GetString("NotNow", resourceCulture);
+                return ResourceManager.GetString("NoUpdates", resourceCulture);
             }
         }
         
@@ -1078,11 +1078,47 @@ namespace NAPS2.Lang.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to A newer version of NAPS2 is available. Do you want to update now?.
+        ///   Looks up a localized string similar to An update is available..
         /// </summary>
-        internal static string UpdateNow {
+        internal static string UpdateAvailable {
             get {
-                return ResourceManager.GetString("UpdateNow", resourceCulture);
+                return ResourceManager.GetString("UpdateAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An error occured when trying to install the update..
+        /// </summary>
+        internal static string UpdateError {
+            get {
+                return ResourceManager.GetString("UpdateError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update Progress.
+        /// </summary>
+        internal static string UpdateProgress {
+            get {
+                return ResourceManager.GetString("UpdateProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating....
+        /// </summary>
+        internal static string Updating {
+            get {
+                return ResourceManager.GetString("Updating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Uploading email....
+        /// </summary>
+        internal static string UploadingEmail {
+            get {
+                return ResourceManager.GetString("UploadingEmail", resourceCulture);
             }
         }
         

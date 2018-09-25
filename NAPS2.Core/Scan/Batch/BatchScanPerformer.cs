@@ -42,12 +42,13 @@ namespace NAPS2.Scan.Batch
             this.formFactory = formFactory;
         }
 
-        public async Task PerformBatchScan(BatchSettings settings, FormBase batchForm, Action<ScannedImage> imageCallback, Func<string, bool> progressCallback)
+        public async Task PerformBatchScan(BatchSettings settings, FormBase batchForm, Action<ScannedImage> imageCallback, Action<string> progressCallback, CancellationToken cancelToken)
         {
             var state = new BatchState(scanPerformer, profileManager, fileNamePlaceholders, pdfExporter, operationFactory, pdfSettingsContainer, ocrManager, formFactory)
             {
                 Settings = settings,
                 ProgressCallback = progressCallback,
+                CancelToken = cancelToken,
                 BatchForm = batchForm,
                 LoadImageCallback = imageCallback
             };
@@ -83,7 +84,9 @@ namespace NAPS2.Scan.Batch
 
             public BatchSettings Settings { get; set; }
 
-            public Func<string, bool> ProgressCallback { get; set; }
+            public Action<string> ProgressCallback { get; set; }
+
+            public CancellationToken CancelToken { get; set; }
 
             public FormBase BatchForm { get; set; }
 
@@ -95,19 +98,37 @@ namespace NAPS2.Scan.Batch
                 scanParams = new ScanParams
                 {
                     DetectPatchCodes = Settings.OutputType == BatchOutputType.MultipleFiles && Settings.SaveSeparator == SaveSeparator.PatchT,
-                    NoUI = true
+                    NoUI = true,
+                    DoOcr = Settings.OutputType == BatchOutputType.Load ? (bool?)null // Use the default behaviour if we don't know what will be done with the images
+                        : GetSavePathExtension().ToLower() == ".pdf" && ocrManager.DefaultParams?.LanguageCode != null,
+                    OcrCancelToken = CancelToken
                 };
+
                 try
                 {
+                    CancelToken.ThrowIfCancellationRequested();
                     await Input();
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
                 }
                 catch (Exception)
                 {
+                    CancelToken.ThrowIfCancellationRequested();
                     // Save at least some data so it isn't lost
                     await Output();
                     throw;
                 }
-                await Output();
+
+                try
+                {
+                    CancelToken.ThrowIfCancellationRequested();
+                    await Output();
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
 
             private async Task Input()
@@ -118,31 +139,20 @@ namespace NAPS2.Scan.Batch
 
                     if (Settings.ScanType == BatchScanType.Single)
                     {
-                        if (!await InputOneScan(-1))
-                        {
-                            return;
-                        }
+                        await InputOneScan(-1);
                     }
                     else if (Settings.ScanType == BatchScanType.MultipleWithDelay)
                     {
                         for (int i = 0; i < Settings.ScanCount; i++)
                         {
+                            ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 1));
                             if (i != 0)
                             {
-                                string status = string.Format(MiscResources.BatchStatusWaitingForScan, i + 1);
-                                if (!ThreadSleepWithCancel(TimeSpan.FromSeconds(Settings.ScanIntervalSeconds), TimeSpan.FromSeconds(1),
-                                    () => ProgressCallback(status)))
-                                {
-                                    return;
-                                }
+                                ThreadSleepWithCancel(TimeSpan.FromSeconds(Settings.ScanIntervalSeconds), CancelToken);
+                                CancelToken.ThrowIfCancellationRequested();
                             }
 
                             if (!await InputOneScan(i))
-                            {
-                                return;
-                            }
-
-                            if (!ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 2)))
                             {
                                 return;
                             }
@@ -153,52 +163,30 @@ namespace NAPS2.Scan.Batch
                         int i = 0;
                         do
                         {
+                            ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 1));
                             if (!await InputOneScan(i++))
                             {
                                 return;
                             }
-
-                            if (!ProgressCallback(string.Format(MiscResources.BatchStatusWaitingForScan, i + 1)))
-                            {
-                                return;
-                            }
+                            CancelToken.ThrowIfCancellationRequested();
                         } while (PromptForNextScan());
                     }
                 }, TaskCreationOptions.LongRunning).Unwrap();
             }
 
-            private bool ThreadSleepWithCancel(TimeSpan sleepDuration, TimeSpan cancelCheckInterval, Func<bool> cancelCheck)
+            private void ThreadSleepWithCancel(TimeSpan sleepDuration, CancellationToken cancelToken)
             {
-                while (sleepDuration > TimeSpan.Zero)
-                {
-                    if (sleepDuration > cancelCheckInterval)
-                    {
-                        Thread.Sleep(cancelCheckInterval);
-                        sleepDuration -= cancelCheckInterval;
-                    }
-                    else
-                    {
-                        Thread.Sleep(sleepDuration);
-                        sleepDuration = TimeSpan.Zero;
-                    }
-                    if (!cancelCheck())
-                    {
-                        return false;
-                    }
-                }
-                return true;
+                cancelToken.WaitHandle.WaitOne(sleepDuration);
             }
 
             private async Task<bool> InputOneScan(int scanNumber)
             {
                 var scan = new List<ScannedImage>();
                 int pageNumber = 1;
-                if (!ProgressCallback(scanNumber == -1
+                ProgressCallback(scanNumber == -1
                     ? string.Format(MiscResources.BatchStatusPage, pageNumber++)
-                    : string.Format(MiscResources.BatchStatusScanPage, pageNumber++, scanNumber + 1)))
-                {
-                    return false;
-                }
+                    : string.Format(MiscResources.BatchStatusScanPage, pageNumber++, scanNumber + 1));
+                CancelToken.ThrowIfCancellationRequested();
                 try
                 {
                     await DoScan(scanNumber, scan, pageNumber);
@@ -206,7 +194,7 @@ namespace NAPS2.Scan.Batch
                 catch (OperationCanceledException)
                 {
                     scans.Add(scan);
-                    return false;
+                    throw;
                 }
                 if (scan.Count == 0)
                 {
@@ -222,12 +210,10 @@ namespace NAPS2.Scan.Batch
                 await scanPerformer.PerformScan(profile, scanParams, BatchForm, null, image =>
                 {
                     scan.Add(image);
-                    if (!ProgressCallback(scanNumber == -1
+                    CancelToken.ThrowIfCancellationRequested();
+                    ProgressCallback(scanNumber == -1
                         ? string.Format(MiscResources.BatchStatusPage, pageNumber++)
-                        : string.Format(MiscResources.BatchStatusScanPage, pageNumber++, scanNumber + 1)))
-                    {
-                        throw new OperationCanceledException();
-                    }
+                        : string.Format(MiscResources.BatchStatusScanPage, pageNumber++, scanNumber + 1));
                 });
             }
 
@@ -290,7 +276,7 @@ namespace NAPS2.Scan.Batch
                     var snapshots = images.Select(x => x.Preserve()).ToList();
                     try
                     {
-                        await pdfExporter.Export(subPath, snapshots, pdfSettingsContainer.PdfSettings, ocrManager.DefaultParams, (j, k) => { }, CancellationToken.None);
+                        await pdfExporter.Export(subPath, snapshots, pdfSettingsContainer.PdfSettings, ocrManager.DefaultParams, (j, k) => { }, CancelToken);
                     }
                     finally
                     {

@@ -223,7 +223,6 @@
     <None Include="Setup\lib\Interop.WIA.dll" />
     <None Include="Setup\lib\PdfSharp.dll" />
     <Content Include="scanner-app.ico" />
-    <Content Include="Setup\license.txt" />
     <None Include="Setup\lib\wiaaut.dll" />
   </ItemGroup>
   <ItemGroup>

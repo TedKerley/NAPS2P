@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("NAPS2 (Not Another PDF Scanner 2)")]
-[assembly: AssemblyCopyright("Copyright 2009, 2012-2017 NAPS2 Contributors; Icons from http://www.fatcow.com/free-icons")]
+[assembly: AssemblyCopyright("Copyright 2009, 2012-2018 NAPS2 Contributors; Icons from http://www.fatcow.com/free-icons")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -28,4 +28,4 @@ using System.Runtime.InteropServices;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("5.8.2.*")]
+[assembly: AssemblyVersion("6.0.2.*")]

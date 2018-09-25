@@ -15,6 +15,12 @@ namespace NAPS2.WinForms
 
         private readonly ScannedImageRenderer scannedImageRenderer;
 
+        protected Bitmap workingImage, workingImage2;
+        private bool previewOutOfDate;
+        private bool working;
+        private Timer previewTimer;
+        private bool closed;
+
         private ImageForm()
         {
             // For the designer only
@@ -94,7 +100,14 @@ namespace NAPS2.WinForms
 
             Size = new Size(600, 600);
 
-            int maxDimen = Screen.AllScreens.Max(s => Math.Max(s.WorkingArea.Height, s.WorkingArea.Width));
+            var maxDimen = Screen.AllScreens.Max(s => Math.Max(s.WorkingArea.Height, s.WorkingArea.Width));
+            workingImage = await scannedImageRenderer.Render(Image, maxDimen * 2);
+            if (closed)
+            {
+                workingImage?.Dispose();
+                return;
+            }
+            workingImage2 = (Bitmap)workingImage.Clone();
 
             await this.ImagePreviewHelper.SetImageAsync(this.Image, maxDimen);
 
@@ -139,19 +152,13 @@ namespace NAPS2.WinForms
             UpdatePreviewBox();
         }
 
-        /// <summary>
-        /// Clean up any resources being used.
-        /// </summary>
-        protected override void Dispose(bool disposing)
+        private void ImageForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-
-            if (disposing)
-            {
-                this.ImagePreviewHelper.Dispose();
-                this.PictureBox.Image?.Dispose();
-                this.components?.Dispose();
-            }
-            base.Dispose(disposing);
+            workingImage?.Dispose();
+            workingImage2?.Dispose();
+            PictureBox.Image?.Dispose();
+            previewTimer?.Dispose();
+            closed = true;
         }
     }
 }

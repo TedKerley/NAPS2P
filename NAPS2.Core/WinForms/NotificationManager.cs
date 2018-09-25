@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.Operation;
+using NAPS2.Update;
 using NAPS2.Util;
 
 namespace NAPS2.WinForms
@@ -60,15 +62,34 @@ namespace NAPS2.WinForms
             Show(new OperationProgressNotifyWidget(opModalProgress, op));
         }
 
+        public void UpdateAvailable(UpdateChecker updateChecker, UpdateInfo update)
+        {
+            Show(new UpdateAvailableNotifyWidget(updateChecker, update));
+        }
+
+        public void Rebuild()
+        {
+            var old = slots.ToList();
+            slots.Clear();
+            for (int i = 0; i < old.Count; i++)
+            {
+                if (old[i] != null)
+                {
+                    Show(old[i].Clone());
+                }
+            }
+        }
+
         private void Show(NotifyWidgetBase n)
         {
-            if (appConfigManager.Config.DisableSaveNotifications)
+            if (appConfigManager.Config.DisableSaveNotifications && n is NotifyWidget)
             {
                 return;
             }
 
             int slot = FillNextSlot(n);
             n.Location = GetPosition(n, slot);
+            n.Resize += parentForm_Resize;
             n.BringToFront();
             n.HideNotify += (sender, args) => ClearSlot(n);
             n.ShowNotify();
