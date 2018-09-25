@@ -210,6 +210,7 @@ namespace NAPS2.WinForms
             // The scan button is disabled until a preview has been performed.
             this.btnScan.Enabled = false;
             this.btnPreviewPrevious.Enabled = false;
+            this.chkUseScanner.Checked = true;
             this.chkUseScanner.Enabled = false;
 
             this.imageAreaSelector.Reset(this.currentScanProfile);
