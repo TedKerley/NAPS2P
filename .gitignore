@@ -3,3 +3,5 @@ packages/
 *.user
 *.suo
 .vs/
+/NAPS2_64
+/NAPS2_64.Console
