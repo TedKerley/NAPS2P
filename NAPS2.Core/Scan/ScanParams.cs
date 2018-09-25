@@ -3,9 +3,7 @@
 //     Copyright 2012-2018 Ben Olden-Cooligan and contributors. All rights reserved.   
 //  </copyright>
 // --------------------------------------------------------------------------------
-using System;
-using System.Collections.Generic;
-using System.Linq;
+
 using System.Runtime.Serialization;
 using System.Threading;
 using NAPS2.Ocr;
@@ -22,11 +20,11 @@ namespace NAPS2.Scan
 
         public bool Modal { get; set; } = true;
 
+        public bool? DoOcr { get; set; }
+
         public bool NoUI { get; set; }
 
         public bool NoAutoSave { get; set; }
-
-        public bool NoUI { get; set; }
 
         [IgnoreDataMember]
         public OcrParams OcrParams { get; set; }
