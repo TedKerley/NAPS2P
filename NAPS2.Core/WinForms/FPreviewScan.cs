@@ -126,7 +126,8 @@ namespace NAPS2.WinForms
             ScanProfile scanProfile,
             int dpi,
             Offset offsetsToUse,
-            ScannedImage scan)
+            ScannedImage scan,
+            bool isPreview)
         {
             int requestedImageWidth = (int)(scanProfile.PageSize.PageDimensions().WidthInInches() * dpi
                                             - offsetsToUse.Left - offsetsToUse.Right);
@@ -141,8 +142,16 @@ namespace NAPS2.WinForms
                 if (widthOversize > SCAN_OVERSIZE_TOLERANCE || heightOversize > SCAN_OVERSIZE_TOLERANCE)
                 {
                     scan.AddTransform(new CropTransform() { Bottom = heightOversize, Right = widthOversize });
-                    scan.SetThumbnail(await this.thumbnailRenderer.RenderThumbnail(scan));
+
+                    if (isPreview)
+                    {
+                        // Allowing the bitamp to be shrunk changes the scaling and invalidates the crop coordinates,
+                        // So don't allow in this case.
+                        var croppedBitmap = await this.thumbnailRenderer.RenderThumbnail(scan, shrinkBitmap: false);
+                        scan.SetThumbnail(croppedBitmap);
+                    }
                 }
+
             }
         }
 
@@ -250,7 +259,7 @@ namespace NAPS2.WinForms
                 s => scan = s);
 
             // Note - there seems to be a minimum size to the scan, so crop to the requested sizes. 
-            await this.CropImageToRequestedSizeAsync(scanProfile, dpi, offsetsToUse, scan);
+            await this.CropImageToRequestedSizeAsync(scanProfile, dpi, offsetsToUse, scan, preview);
 
             onImageAction(scan);
 

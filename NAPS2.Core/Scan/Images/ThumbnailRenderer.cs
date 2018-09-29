@@ -61,22 +61,22 @@ namespace NAPS2.Scan.Images
             this.scannedImageRenderer = scannedImageRenderer;
         }
 
-        public Task<Bitmap> RenderThumbnail(ScannedImage scannedImage)
+        public Task<Bitmap> RenderThumbnail(ScannedImage scannedImage, bool shrinkBitmap = false)
         {
-            return RenderThumbnail(scannedImage, userConfigManager.Config.ThumbnailSize);
+            return RenderThumbnail(scannedImage, userConfigManager.Config.ThumbnailSize, shrinkBitmap);
         }
 
-        public Task<Bitmap> RenderThumbnail(ScannedImage scannedImage, int size)
+        public Task<Bitmap> RenderThumbnail(ScannedImage scannedImage, int size, bool shrinkBitmap = false)
         {
             using (var snapshot = scannedImage.Preserve())
             {
-                return RenderThumbnail(snapshot, size);
+                return RenderThumbnail(snapshot, size, shrinkBitmap);
             }
         }
 
-        public async Task<Bitmap> RenderThumbnail(ScannedImage.Snapshot snapshot, int size)
+        public async Task<Bitmap> RenderThumbnail(ScannedImage.Snapshot snapshot, int size, bool shrinkBitmap = false)
         {
-            using (var bitmap = await scannedImageRenderer.Render(snapshot, snapshot.TransformList.Count == 0 ? 0 : size * OVERSAMPLE))
+            using (var bitmap = await scannedImageRenderer.Render(snapshot, snapshot.TransformList.Count == 0 ? 0 : size * OVERSAMPLE, shrinkBitmap))
             {
                 return RenderThumbnail(bitmap, size);
             }

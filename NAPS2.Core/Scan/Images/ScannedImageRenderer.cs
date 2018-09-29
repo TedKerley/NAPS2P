@@ -20,22 +20,22 @@ namespace NAPS2.Scan.Images
             this.pdfRenderer = pdfRenderer;
         }
 
-        public async Task<Bitmap> Render(ScannedImage image, int outputSize = 0)
+        public async Task<Bitmap> Render(ScannedImage image, int outputSize = 0, bool shrinkBitmap = false)
         {
             using (var snapshot = image.Preserve())
             {
-                return await Render(snapshot, outputSize);
+                return await Render(snapshot, outputSize, shrinkBitmap);
             }
         }
 
-        public async Task<Bitmap> Render(ScannedImage.Snapshot snapshot, int outputSize = 0)
+        public async Task<Bitmap> Render(ScannedImage.Snapshot snapshot, int outputSize  = 0 , bool shrinkBitmap = false)
         {
             return await Task.Factory.StartNew(() =>
             {
                 var bitmap = snapshot.Source.FileFormat == null
                     ? pdfRenderer.Render(snapshot.Source.RecoveryFilePath).Single()
                     : new Bitmap(snapshot.Source.RecoveryFilePath);
-                if (outputSize > 0)
+                if (outputSize > 0 && shrinkBitmap)
                 {
                     bitmap = ShrinkBitmap(bitmap, outputSize);
                 }
