@@ -18,6 +18,8 @@ namespace NAPS2.WinForms
 
        private LayoutManager lm;
 
+        private int originalWidth, originalHeight;
+
         public FCrop(ChangeTracker changeTracker, ScannedImageRenderer scannedImageRenderer)
             : base(changeTracker, scannedImageRenderer)
         {
@@ -26,6 +28,8 @@ namespace NAPS2.WinForms
             this.imageAreaSelector.ImagePreviewHelper = this.ImagePreviewHelper;
             lm = new LayoutManager(this).Bind(this.imageAreaSelector).WidthToForm().HeightToForm().Activate();
             this.imageAreaSelector.SelectedAreaChanged += (sender, args) => this.UpdateTransform();
+
+            originalWidth = originalHeight = 1000;
 
         }
 
@@ -44,6 +48,8 @@ namespace NAPS2.WinForms
 
         protected override void InitTransform()
         {
+            originalWidth = workingImage.Width;
+            originalHeight = workingImage.Height;
             if (_lastTransform != null && _lastSize == this.ImagePreviewHelper.WorkingImage.Size)
             {
                 CropTransform = _lastTransform;

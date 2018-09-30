@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using NAPS2.Logging;
 using NAPS2.Platform;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
@@ -15,7 +16,6 @@ using NAPS2.WinForms;
 using NTwain;
 using NTwain.Data;
 using NAPS2.Util;
-using NAPS2.Worker;
 
 namespace NAPS2.Scan.Twain
 {
@@ -25,7 +25,6 @@ namespace NAPS2.Scan.Twain
 
         private readonly IFormFactory formFactory;
         private readonly IBlankDetector blankDetector;
-        private readonly ThumbnailRenderer thumbnailRenderer;
         private readonly ScannedImageHelper scannedImageHelper;
 
         static TwainWrapper()
@@ -46,11 +45,10 @@ namespace NAPS2.Scan.Twain
 #endif
         }
 
-        public TwainWrapper(IFormFactory formFactory, IBlankDetector blankDetector, ThumbnailRenderer thumbnailRenderer, ScannedImageHelper scannedImageHelper)
+        public TwainWrapper(IFormFactory formFactory, IBlankDetector blankDetector, ScannedImageHelper scannedImageHelper)
         {
             this.formFactory = formFactory;
             this.blankDetector = blankDetector;
-            this.thumbnailRenderer = thumbnailRenderer;
             this.scannedImageHelper = scannedImageHelper;
         }
 
@@ -89,11 +87,11 @@ namespace NAPS2.Scan.Twain
         }
 
         public void Scan(IWin32Window dialogParent, ScanDevice scanDevice, ScanProfile scanProfile, ScanParams scanParams,
-            ScannedImageSource.Concrete source, Action<ScannedImage, ScanParams, string> runBackgroundOcr)
+            CancellationToken cancelToken, ScannedImageSource.Concrete source, Action<ScannedImage, ScanParams, string> runBackgroundOcr)
         {
             try
             {
-                InternalScan(scanProfile.TwainImpl, dialogParent, scanDevice, scanProfile, scanParams, source, runBackgroundOcr);
+                InternalScan(scanProfile.TwainImpl, dialogParent, scanDevice, scanProfile, scanParams, cancelToken, source, runBackgroundOcr);
             }
             catch (DeviceNotFoundException)
             {
@@ -101,7 +99,7 @@ namespace NAPS2.Scan.Twain
                 {
                     // Fall back to OldDsm in case of no devices
                     // This is primarily for Citrix support, which requires using twain_32.dll for TWAIN passthrough
-                    InternalScan(TwainImpl.OldDsm, dialogParent, scanDevice, scanProfile, scanParams, source, runBackgroundOcr);
+                    InternalScan(TwainImpl.OldDsm, dialogParent, scanDevice, scanProfile, scanParams, cancelToken, source, runBackgroundOcr);
                 }
                 else
                 {
@@ -111,7 +109,7 @@ namespace NAPS2.Scan.Twain
         }
 
         private void InternalScan(TwainImpl twainImpl, IWin32Window dialogParent, ScanDevice scanDevice, ScanProfile scanProfile, ScanParams scanParams,
-            ScannedImageSource.Concrete source, Action<ScannedImage, ScanParams, string> runBackgroundOcr)
+            CancellationToken cancelToken, ScannedImageSource.Concrete source, Action<ScannedImage, ScanParams, string> runBackgroundOcr)
         {
             if (dialogParent == null)
             {
@@ -162,7 +160,6 @@ namespace NAPS2.Scan.Twain
                                 ? ScanBitDepth.BlackWhite
                                 : ScanBitDepth.C24Bit;
                             var image = new ScannedImage(result, bitDepth, scanProfile.MaxQuality, scanProfile.Quality);
-                            image.SetThumbnail(thumbnailRenderer.RenderThumbnail(result));
                             if (scanParams.DetectPatchCodes)
                             {
                                 foreach (var patchCodeInfo in eventArgs.GetExtImageInfo(ExtendedImageInfo.PatchCode))
@@ -256,6 +253,15 @@ namespace NAPS2.Scan.Twain
                     {
                         Debug.WriteLine("NAPS2.TW - Enable failed - {0}, rc");
                         StopTwain();
+                    }
+                    else
+                    {
+                        cancelToken.Register(() =>
+                        {
+                            Debug.WriteLine("NAPS2.TW - User Cancel");
+                            cancel = true;
+                            session.ForceStepDown(5);
+                        });
                     }
                 }
                 catch (Exception ex)

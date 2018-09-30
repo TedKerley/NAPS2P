@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using NAPS2.Logging;
 using NAPS2.Scan;
 using NAPS2.Scan.Images;
 using NAPS2.Scan.Images.Transforms;
@@ -96,7 +97,7 @@ namespace NAPS2.Recovery
             }
         }
 
-        private static string GetNextFileName()
+        public static string GetNextFileName()
         {
             lock (RecoveryFileNumberLock)
             {

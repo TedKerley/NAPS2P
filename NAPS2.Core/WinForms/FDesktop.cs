@@ -18,6 +18,7 @@ using NAPS2.Config;
 using NAPS2.ImportExport;
 using NAPS2.Lang;
 using NAPS2.Lang.Resources;
+using NAPS2.Logging;
 using NAPS2.Ocr;
 using NAPS2.Operation;
 using NAPS2.Platform;
@@ -441,7 +442,7 @@ namespace NAPS2.WinForms
 
         private async Task RunStillImageEvents()
         {
-            if (stillImage.DoScan)
+            if (stillImage.ShouldScan)
             {
                 await ScanWithDevice(stillImage.DeviceID);
             }
@@ -1189,7 +1190,7 @@ namespace NAPS2.WinForms
         private void tsPreviewScan_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FPreviewScan>();
-            form.ImageCallback = this.ReceiveScannedImage();
+            form.ImageCallback = ReceiveScannedImage();
             form.ShowDialog();
             UpdateScanButton();
 
@@ -1941,12 +1942,12 @@ namespace NAPS2.WinForms
 
         #region Drag/Drop
 
-        private void thumbnailList1_ItemDrag(object sender, ItemDragEventArgs e)
+        private async void thumbnailList1_ItemDrag(object sender, ItemDragEventArgs e)
         {
             // Provide drag data
             if (SelectedIndices.Any())
             {
-                var ido = GetDataObjectForImages(SelectedImages, false);
+                var ido = await GetDataObjectForImages(SelectedImages, false);
                 DoDragDrop(ido, DragDropEffects.Move | DragDropEffects.Copy);
             }
         }

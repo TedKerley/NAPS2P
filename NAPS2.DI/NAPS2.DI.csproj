@@ -84,6 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EntryPoints\ConsoleEntryPoint.cs" />
+    <Compile Include="EntryPoints\ServerEntryPoint.cs" />
     <Compile Include="EntryPoints\WorkerEntryPoint.cs" />
     <Compile Include="Modules\CommonModule.cs" />
     <Compile Include="Modules\ConsoleModule.cs" />

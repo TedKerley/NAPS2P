@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using NAPS2.Logging;
 using NAPS2.Platform;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
@@ -25,36 +26,20 @@ namespace NAPS2.Scan.Sane
         private readonly SaneWrapper saneWrapper;
         private readonly IFormFactory formFactory;
         private readonly IBlankDetector blankDetector;
-        private readonly ThumbnailRenderer thumbnailRenderer;
         private readonly ScannedImageHelper scannedImageHelper;
 
-        public SaneScanDriver(SaneWrapper saneWrapper, IFormFactory formFactory, IBlankDetector blankDetector, ThumbnailRenderer thumbnailRenderer, ScannedImageHelper scannedImageHelper)
+        public SaneScanDriver(SaneWrapper saneWrapper, IFormFactory formFactory, IBlankDetector blankDetector, ScannedImageHelper scannedImageHelper)
+            : base(formFactory)
         {
             this.saneWrapper = saneWrapper;
             this.formFactory = formFactory;
             this.blankDetector = blankDetector;
-            this.thumbnailRenderer = thumbnailRenderer;
             this.scannedImageHelper = scannedImageHelper;
         }
 
         public override string DriverName => DRIVER_NAME;
 
         public override bool IsSupported => PlatformCompat.System.IsSaneDriverSupported;
-
-        protected override ScanDevice PromptForDeviceInternal()
-        {
-            var deviceList = GetDeviceList();
-
-            if (!deviceList.Any())
-            {
-                throw new NoDevicesFoundException();
-            }
-
-            var form = formFactory.Create<FSelectDevice>();
-            form.DeviceList = deviceList;
-            form.ShowDialog();
-            return form.SelectedDevice;
-        }
 
         protected override List<ScanDevice> GetDeviceListInternal()
         {
@@ -66,20 +51,20 @@ namespace NAPS2.Scan.Sane
             // TODO: Test ADF
             var options = new Lazy<KeyValueScanOptions>(GetOptions);
             int pageNumber = 1;
-            var (img, cancel) = await Transfer(options, pageNumber);
+            var (img, done) = await Transfer(options, pageNumber);
             if (img != null)
             {
                 source.Put(img);
             }
 
-            if (!cancel && ScanProfile.PaperSource != ScanSource.Glass)
+            if (!done && ScanProfile.PaperSource != ScanSource.Glass)
             {
                 try
                 {
                     while (true)
                     {
-                        (img, cancel) = await Transfer(options, ++pageNumber);
-                        if (cancel)
+                        (img, done) = await Transfer(options, ++pageNumber);
+                        if (done)
                         {
                             break;
                         }
@@ -241,12 +226,13 @@ namespace NAPS2.Scan.Sane
                 Stream stream;
                 if (ScanParams.NoUI)
                 {
-                    stream = saneWrapper.ScanOne(ScanDevice.ID, options.Value, null, CancellationToken.None);
+                    stream = saneWrapper.ScanOne(ScanDevice.ID, options.Value, null, CancelToken);
                 }
                 else
                 {
                     var form = formFactory.Create<FScanProgress>();
-                    form.Transfer = () => saneWrapper.ScanOne(ScanDevice.ID, options.Value, form.OnProgress, form.CancelToken);
+                    var unifiedCancelToken = CancellationTokenSource.CreateLinkedTokenSource(form.CancelToken, CancelToken).Token;
+                    form.Transfer = () => saneWrapper.ScanOne(ScanDevice.ID, options.Value, form.OnProgress, unifiedCancelToken);
                     form.PageNumber = pageNumber;
                     ((FormBase)Application.OpenForms[0]).SafeInvoke(() => form.ShowDialog());
 
@@ -262,6 +248,10 @@ namespace NAPS2.Scan.Sane
 
                     stream = form.ImageStream;
                 }
+                if (stream == null)
+                {
+                    return (null, true);
+                }
                 using (stream)
                 using (var output = Image.FromStream(stream))
                 using (var result = scannedImageHelper.PostProcessStep1(output, ScanProfile, false))
@@ -276,7 +266,6 @@ namespace NAPS2.Scan.Sane
                     using (var encoded = ScanProfile.BitDepth == ScanBitDepth.BlackWhite ? UnsafeImageOps.ConvertTo1Bpp(result, -ScanProfile.Brightness) : result)
                     {
                         var image = new ScannedImage(encoded, ScanProfile.BitDepth, ScanProfile.MaxQuality, ScanProfile.Quality);
-                        image.SetThumbnail(thumbnailRenderer.RenderThumbnail(result));
                         scannedImageHelper.PostProcessStep2(image, result, ScanProfile, ScanParams, 1, false);
                         string tempPath = scannedImageHelper.SaveForBackgroundOcr(result, ScanParams);
                         scannedImageHelper.RunBackgroundOcr(image, ScanParams, tempPath);
