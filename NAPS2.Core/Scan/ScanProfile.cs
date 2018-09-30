@@ -54,6 +54,10 @@ namespace NAPS2.Scan
 
         public string DriverName { get; set; }
 
+        public ScanProxyConfig ProxyConfig { get; set; }
+
+        public string ProxyDriverName { get; set; }
+
         public string DisplayName { get; set; }
 
         public int IconID { get; set; }
@@ -139,6 +143,16 @@ namespace NAPS2.Scan
         public bool FlipDuplexedPages { get; set; }
 
         public KeyValueScanOptions KeyValueOptions { get; set; }
+    }
+
+    [Serializable]
+    public class ScanProxyConfig
+    {
+        public string Name { get; set; }
+
+        public string Ip { get; set; }
+
+        public int? Port { get; set; }
     }
 
     /// <summary>

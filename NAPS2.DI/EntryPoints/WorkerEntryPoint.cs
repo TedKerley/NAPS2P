@@ -6,7 +6,9 @@ using System.ServiceModel;
 using System.Threading;
 using System.Windows.Forms;
 using NAPS2.DI.Modules;
+using NAPS2.Logging;
 using NAPS2.Util;
+using NAPS2.WinForms;
 using NAPS2.Worker;
 using Ninject;
 
@@ -29,7 +31,6 @@ namespace NAPS2.DI.EntryPoints
 
                 // Initialize Ninject (the DI framework)
                 var kernel = new StandardKernel(new CommonModule(), new WinFormsModule());
-                var workerService = kernel.Get<WorkerService>();
 
                 // Expect a single argument, the parent process id
                 if (args.Length != 1 || !int.TryParse(args[0], out int procId) || !IsProcessRunning(procId))
@@ -49,8 +50,9 @@ namespace NAPS2.DI.EntryPoints
 
                 // Connect to the main NAPS2 process and listen for assigned work
                 string pipeName = string.Format(WorkerManager.PIPE_NAME_FORMAT, Process.GetCurrentProcess().Id);
-                using (var host = new ServiceHost(workerService))
+                using (var host = new ServiceHost(typeof(WorkerService)))
                 {
+                    host.Description.Behaviors.Add(new ServiceFactoryBehavior(() => kernel.Get<WorkerService>()));
                     host.AddServiceEndpoint(typeof (IWorkerService),
                         new NetNamedPipeBinding {ReceiveTimeout = TimeSpan.FromHours(24), SendTimeout = TimeSpan.FromHours(24)}, pipeName);
                     host.Open();

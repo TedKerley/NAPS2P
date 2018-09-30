@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Lang.Resources;
+using NAPS2.Logging;
 using NAPS2.Operation;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
@@ -145,6 +146,18 @@ namespace NAPS2.ImportExport.Images
                 }
                 return false;
             });
+            Success.ContinueWith(task =>
+            {
+                if (task.Result)
+                {
+                    Log.Event(EventType.SaveImages, new EventParams
+                    {
+                        Name = MiscResources.SaveImages,
+                        Pages = snapshots.Count,
+                        FileFormat = Path.GetExtension(fileName)
+                    });
+                }
+            }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
             return true;
         }

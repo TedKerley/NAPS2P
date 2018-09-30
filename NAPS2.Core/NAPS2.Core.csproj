@@ -149,12 +149,24 @@
     <Compile Include="Automation\ConsoleOverwritePrompt.cs" />
     <Compile Include="Automation\ConsolePdfPasswordProvider.cs" />
     <Compile Include="Automation\ConsoleComponentInstallPrompt.cs" />
+    <Compile Include="ClientServer\ClientContext.cs" />
+    <Compile Include="ClientServer\ClientContextFactory.cs" />
+    <Compile Include="ClientServer\IScanCallback.cs" />
+    <Compile Include="ClientServer\IScanService.cs" />
+    <Compile Include="ClientServer\ProxiedScanDriver.cs" />
+    <Compile Include="ClientServer\ScanCallback.cs" />
+    <Compile Include="ClientServer\ScanService.cs" />
+    <Compile Include="ClientServer\ServerDiscovery.cs" />
     <Compile Include="Dependencies\ComponentManager.cs" />
     <Compile Include="Dependencies\DownloadMirror.cs" />
     <Compile Include="Dependencies\MultiFileExternalComponent.cs" />
     <Compile Include="Dependencies\IExternalComponent.cs" />
     <Compile Include="ImportExport\Email\Mapi\MapiWrapper.cs" />
     <Compile Include="ImportExport\Pdf\GhostscriptManager.cs" />
+    <Compile Include="Logging\EventParams.cs" />
+    <Compile Include="Logging\EventType.cs" />
+    <Compile Include="Logging\IEventLogger.cs" />
+    <Compile Include="Logging\NullEventLogger.cs" />
     <Compile Include="Ocr\OcrManager.cs" />
     <Compile Include="Ocr\OcrMode.cs" />
     <Compile Include="Ocr\OcrParams.cs" />
@@ -203,9 +215,17 @@
     <Compile Include="Util\NaturalStringComparer.cs" />
     <Compile Include="Util\ProgressHandler.cs" />
     <Compile Include="Util\SecureString.cs" />
+    <Compile Include="Util\ServiceFactoryBehavior.cs" />
     <Compile Include="Util\TaskExtensions.cs" />
     <Compile Include="Util\WebClientExtensions.cs" />
     <Compile Include="Util\Win32Window.cs" />
+    <Compile Include="Logging\WindowsEventLogger.cs" />
+    <Compile Include="WinForms\FProxyConfig.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WinForms\FProxyConfig.Designer.cs">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </Compile>
     <Compile Include="WinForms\ImageForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -221,13 +241,15 @@
     <Compile Include="WinForms\OperationProgressNotifyWidget.Designer.cs">
       <DependentUpon>OperationProgressNotifyWidget.cs</DependentUpon>
     </Compile>
+    <Compile Include="WinForms\ServerNotifyIcon.cs" />
     <Compile Include="WinForms\UpdateAvailableNotifyWidget.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Worker\BackgroundForm.cs">
+    <Compile Include="WinForms\BackgroundForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Worker\IWorkerCallback.cs" />
+    <Compile Include="Worker\ScanDriverExceptionDetail.cs" />
     <Compile Include="Worker\WorkerCallback.cs" />
     <Compile Include="Worker\WorkerContext.cs" />
     <Compile Include="Worker\WorkerService.cs" />
@@ -345,8 +367,8 @@
     <Compile Include="Worker\IWorkerService.cs" />
     <Compile Include="Util\ISaveNotify.cs" />
     <Compile Include="Util\Lifecycle.cs" />
-    <Compile Include="Util\Log.cs" />
-    <Compile Include="Util\NullLogger.cs" />
+    <Compile Include="Logging\Log.cs" />
+    <Compile Include="Logging\NullLogger.cs" />
     <Compile Include="Ocr\IOcrEngine.cs" />
     <Compile Include="Ocr\TesseractBaseEngine.cs" />
     <Compile Include="Ocr\OcrResult.cs" />
@@ -361,7 +383,7 @@
     <Compile Include="Scan\IScanDriverFactory.cs" />
     <Compile Include="Util\CultureInitializer.cs" />
     <Compile Include="Util\IErrorOutput.cs" />
-    <Compile Include="Util\ILogger.cs" />
+    <Compile Include="Logging\ILogger.cs" />
     <Compile Include="WinForms\ILProfileIcons.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -721,6 +743,132 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
       <LastGenOutput>Icons.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.af.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.ar.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.bg.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.ca.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.cs.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.da.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.de.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.el.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.es.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.et.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.fa.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.fi.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.fr.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.he.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.hr.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.hu.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.it.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.ja.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.ko.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.lt.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.lv.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.nb.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.nl.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.nn.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.pl.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.pt-BR.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.pt-PT.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.resx">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.ro.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.ru.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.si.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.sk.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.sl.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.sq.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.sr-Cyrl.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.sr-Latn.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.sv.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.tr.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.uk.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.vi.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.zh-CHS.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForms\FProxyConfig.zh-TW.resx" Condition="'$(Configuration)' != 'Debug'">
+      <DependentUpon>FProxyConfig.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WinForms\ImageForm.af.resx">
       <DependentUpon>ImageForm.cs</DependentUpon>
@@ -6131,6 +6279,7 @@
     <None Include="Icons\arrow_up.png" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Icons\wireless16.png" />
     <None Include="Icons\btn_donate_LG.gif" />
     <None Include="Icons\application_cascade.png" />
     <Content Include="Icons\application_cascade.ico" />

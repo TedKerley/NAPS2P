@@ -81,6 +81,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EntryPoints\ConsoleEntryPoint.cs" />
+    <Compile Include="EntryPoints\ServerEntryPoint.cs" />
     <Compile Include="EntryPoints\WorkerEntryPoint.cs" />
     <Compile Include="Modules\CommonModule.cs" />
     <Compile Include="Modules\ConsoleModule.cs" />
@@ -121,5 +122,5 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <Import Project="..\NAPS2\Setup\CommonTargets.targets"/>
+  <Import Project="..\NAPS2\Setup\CommonTargets.targets" />
 </Project>

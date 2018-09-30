@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using NAPS2.Config;
 using NAPS2.ImportExport;
+using NAPS2.Lang.Resources;
+using NAPS2.Logging;
 using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
@@ -36,13 +39,14 @@ namespace NAPS2.Scan
             this.scannedImageHelper = scannedImageHelper;
         }
 
-        public async Task PerformScan(ScanProfile scanProfile, ScanParams scanParams, IWin32Window dialogParent, ISaveNotify notify, Action<ScannedImage> imageCallback)
+        public async Task PerformScan(ScanProfile scanProfile, ScanParams scanParams, IWin32Window dialogParent, ISaveNotify notify,
+            Action<ScannedImage> imageCallback, CancellationToken cancelToken = default)
         {
             IScanDriver driver = driverFactory.Create(scanProfile.DriverName);
             driver.DialogParent = dialogParent;
             driver.ScanProfile = scanProfile;
             driver.ScanParams = scanParams;
-            
+            driver.CancelToken = cancelToken;
             try
             {
                 if (scanProfile.Device == null)
@@ -68,7 +72,8 @@ namespace NAPS2.Scan
                 }
 
                 // Start the scan
-                var source = driver.Scan();
+                int imageCount = 0;
+                var source = driver.Scan().Then(img => imageCount++);
 
                 bool doAutoSave = !scanParams.NoAutoSave && !appConfigManager.Config.DisableAutoSave && scanProfile.EnableAutoSave && scanProfile.AutoSaveSettings != null;
                 if (doAutoSave)
@@ -109,6 +114,18 @@ namespace NAPS2.Scan
                 {
                     // No auto save, so just pipe images back as we get them
                     await source.ForEach(imageCallback);
+                }
+
+                if (imageCount > 0)
+                {
+                    Log.Event(EventType.Scan, new EventParams
+                    {
+                        Name = MiscResources.Scan,
+                        Pages = imageCount,
+                        DeviceName = scanProfile.Device?.Name,
+                        ProfileName = scanProfile.DisplayName,
+                        BitDepth = scanProfile.BitDepth.Description()
+                    });
                 }
             }
             catch (ScanDriverException e)

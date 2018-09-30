@@ -36,6 +36,7 @@ function Set-NAPS2-Version {
     param([Parameter(Position=0)] [String] $Version)
     Set-Assembly-Version ([IO.Path]::Combine($pwd, "..\Properties\AssemblyInfo.cs")) $Version".*"
 	Set-Assembly-Version ([IO.Path]::Combine($pwd, "..\..\NAPS2.Worker\Properties\AssemblyInfo.cs")) $Version".*"
+	Set-Assembly-Version ([IO.Path]::Combine($pwd, "..\..\NAPS2.Server\Properties\AssemblyInfo.cs")) $Version".*"
     Set-Assembly-Version ([IO.Path]::Combine($pwd, "..\..\NAPS2.Core\Properties\AssemblyInfo.cs")) $Version".*"
     Set-Assembly-Version ([IO.Path]::Combine($pwd, "..\..\NAPS2.Console\Properties\AssemblyInfo.cs")) $Version".*"
     Set-Assembly-Version ([IO.Path]::Combine($pwd, "..\..\NAPS2.Portable\Properties\AssemblyInfo.cs")) $Version".*"
@@ -81,6 +82,7 @@ function Publish-NAPS2-Standalone {
     mkdir $DataDir
     $BinDir = "..\bin\$Configuration\"
     $CmdBinDir = "..\..\NAPS2.Console\bin\$Configuration\"
+    $ServerBinDir = "..\..\NAPS2.Server\bin\$Configuration\"
     $PortableBinDir = "..\..\NAPS2.Portable\bin\Release\"
     cp ($PortableBinDir + "NAPS2.Portable.exe") $StandaloneDir
     foreach ($LanguageCode in Get-NAPS2-Languages) {

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NAPS2.Platform;
-using NAPS2.Scan.Exceptions;
 using NAPS2.Scan.Images;
 using NAPS2.Util;
 using NAPS2.WinForms;
@@ -17,14 +16,13 @@ namespace NAPS2.Scan.Twain
         
         private readonly IWorkerServiceFactory workerServiceFactory;
         private readonly TwainWrapper twainWrapper;
-        private readonly IFormFactory formFactory;
         private readonly ScannedImageHelper scannedImageHelper;
 
         public TwainScanDriver(IWorkerServiceFactory workerServiceFactory, TwainWrapper twainWrapper, IFormFactory formFactory, ScannedImageHelper scannedImageHelper)
+            : base(formFactory)
         {
             this.workerServiceFactory = workerServiceFactory;
             this.twainWrapper = twainWrapper;
-            this.formFactory = formFactory;
             this.scannedImageHelper = scannedImageHelper;
         }
 
@@ -33,22 +31,7 @@ namespace NAPS2.Scan.Twain
         public override bool IsSupported => PlatformCompat.System.IsTwainDriverSupported;
         
         private bool UseWorker => ScanProfile.TwainImpl != TwainImpl.X64 && Environment.Is64BitProcess && PlatformCompat.Runtime.UseWorker;
-
-        protected override ScanDevice PromptForDeviceInternal()
-        {
-            var deviceList = GetDeviceList();
-
-            if (!deviceList.Any())
-            {
-                throw new NoDevicesFoundException();
-            }
-
-            var form = formFactory.Create<FSelectDevice>();
-            form.DeviceList = deviceList;
-            form.ShowDialog();
-            return form.SelectedDevice;
-        }
-
+        
         protected override List<ScanDevice> GetDeviceListInternal()
         {
             // Exclude WIA proxy devices since NAPS2 already supports WIA
@@ -70,7 +53,7 @@ namespace NAPS2.Scan.Twain
 
         protected override async Task ScanInternal(ScannedImageSource.Concrete source)
         {
-            await Task.Factory.StartNew(() =>
+            await Task.Factory.StartNew(async () =>
             {
                 if (UseWorker)
                 {
@@ -81,15 +64,15 @@ namespace NAPS2.Scan.Twain
                             if (tempPath != null) scannedImageHelper.RunBackgroundOcr(img, ScanParams, tempPath);
                             source.Put(img);
                         };
-                        worker.Service.TwainScan(ScanDevice, ScanProfile, ScanParams, DialogParent?.SafeHandle() ?? IntPtr.Zero);
-                        worker.Callback.WaitForFinish();
+                        CancelToken.Register(worker.Service.CancelTwainScan);
+                        await worker.Service.TwainScan(ScanDevice, ScanProfile, ScanParams, DialogParent?.SafeHandle() ?? IntPtr.Zero);
                     }
                 }
                 else
                 {
-                    twainWrapper.Scan(DialogParent, ScanDevice, ScanProfile, ScanParams, source, scannedImageHelper.RunBackgroundOcr);
+                    twainWrapper.Scan(DialogParent, ScanDevice, ScanProfile, ScanParams, CancelToken, source, scannedImageHelper.RunBackgroundOcr);
                 }
-            }, TaskCreationOptions.LongRunning);
+            }, TaskCreationOptions.LongRunning).Unwrap();
         }
     }
 }

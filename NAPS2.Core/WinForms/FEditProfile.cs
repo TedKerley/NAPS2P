@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using NAPS2.ClientServer;
 using NAPS2.Config;
 using NAPS2.Lang.Resources;
+using NAPS2.Logging;
 using NAPS2.Platform;
 using NAPS2.Scan;
 using NAPS2.Scan.Exceptions;
@@ -25,6 +27,7 @@ namespace NAPS2.WinForms
         private ScanProfile scanProfile;
         private ScanDevice currentDevice;
         private bool isDefault;
+        private bool useProxy;
 
         private int iconID;
         private bool result;
@@ -38,6 +41,9 @@ namespace NAPS2.WinForms
             this.profileNameTracker = profileNameTracker;
             this.appConfigManager = appConfigManager;
             InitializeComponent();
+            btnNetwork.Left = btnChooseDevice.Right + 6;
+            // TODO: Remove this to reenable
+            btnNetwork.Visible = false;
 
             AddEnumItems<ScanHorizontalAlign>(cmbAlign);
             AddEnumItems<ScanBitDepth>(cmbDepth);
@@ -67,6 +73,7 @@ namespace NAPS2.WinForms
                 CurrentDevice = ScanProfile.Device;
             }
             isDefault = ScanProfile.IsDefault;
+            useProxy = ScanProfile.DriverName == ProxiedScanDriver.DRIVER_NAME;
             iconID = ScanProfile.IconID;
 
             cmbSource.SelectedIndex = (int)ScanProfile.PaperSource;
@@ -82,7 +89,7 @@ namespace NAPS2.WinForms
             cbAutoSave.Checked = ScanProfile.EnableAutoSave;
 
             // The setter updates the driver selection checkboxes
-            DeviceDriverName = ScanProfile.DriverName;
+            DeviceDriverName = useProxy ? ScanProfile.ProxyDriverName : ScanProfile.DriverName;
 
             rdbNative.Checked = ScanProfile.UseNativeUI;
             rdbConfig.Checked = !ScanProfile.UseNativeUI;
@@ -96,7 +103,7 @@ namespace NAPS2.WinForms
             new LayoutManager(this)
                 .Bind(txtName, txtDevice, panelUI, panel2)
                     .WidthToForm()
-                .Bind(pctIcon, btnChooseDevice, btnOK, btnCancel)
+                .Bind(pctIcon, btnChooseDevice, btnNetwork, btnOK, btnCancel)
                     .RightToForm()
                 .Bind(cmbAlign, cmbDepth, cmbPage, cmbResolution, cmbScale, cmbSource, trBrightness, trContrast, rdbConfig, rdbNative)
                     .WidthTo(() => Width / 2)
@@ -251,7 +258,9 @@ namespace NAPS2.WinForms
 
         private void btnChooseDevice_Click(object sender, EventArgs e)
         {
-            ChooseDevice(DeviceDriverName);
+            ScanProfile.DriverName = useProxy ? ProxiedScanDriver.DRIVER_NAME : DeviceDriverName;
+            ScanProfile.ProxyDriverName = useProxy ? DeviceDriverName : null;
+            ChooseDevice(ScanProfile.DriverName);
         }
 
         private void SaveSettings()
@@ -275,7 +284,9 @@ namespace NAPS2.WinForms
 
                 Device = CurrentDevice,
                 IsDefault = isDefault,
-                DriverName = DeviceDriverName,
+                DriverName = useProxy ? ProxiedScanDriver.DRIVER_NAME : DeviceDriverName,
+                ProxyConfig = ScanProfile.ProxyConfig,
+                ProxyDriverName = useProxy ? DeviceDriverName : null,
                 DisplayName = txtName.Text,
                 IconID = iconID,
                 MaxQuality = ScanProfile.MaxQuality,
@@ -346,10 +357,11 @@ namespace NAPS2.WinForms
             if (!suppressChangeEvent)
             {
                 suppressChangeEvent = true;
-                
+
+                bool canUseNativeUi = DeviceDriverName != SaneScanDriver.DRIVER_NAME && !useProxy;
                 bool locked = ScanProfile.IsLocked;
                 bool deviceLocked = ScanProfile.IsDeviceLocked;
-                bool settingsEnabled = !locked && rdbConfig.Checked;
+                bool settingsEnabled = !locked && (rdbConfig.Checked || !canUseNativeUi);
 
                 txtName.Enabled = !locked;
                 rdWIA.Enabled = rdTWAIN.Enabled = rdSANE.Enabled = !locked;
@@ -374,7 +386,7 @@ namespace NAPS2.WinForms
                 btnAdvanced.Enabled = !locked;
 
                 ConditionalControls.UnlockHeight(this);
-                ConditionalControls.SetVisible(panelUI, DeviceDriverName != SaneScanDriver.DRIVER_NAME, 20);
+                ConditionalControls.SetVisible(panelUI, canUseNativeUi, 20);
                 ConditionalControls.LockHeight(this);
 
                 suppressChangeEvent = false;
@@ -506,6 +518,19 @@ namespace NAPS2.WinForms
             public string CustomName { get; set; }
 
             public PageDimensions CustomDimens { get; set; }
+        }
+
+        private void btnNetwork_Click(object sender, EventArgs e)
+        {
+            var form = FormFactory.Create<FProxyConfig>();
+            form.ProxyConfig = ScanProfile.ProxyConfig;
+            form.UseProxy = useProxy;
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                ScanProfile.ProxyConfig = form.ProxyConfig;
+                useProxy = form.UseProxy;
+                UpdateEnabledControls();
+            }
         }
     }
 }
