@@ -19,8 +19,6 @@ namespace NAPS2.Scan
     {
         public bool DetectPatchCodes { get; set; }
 
-        public bool? DoOcr { get; set; }
-
         public bool Modal { get; set; } = true;
 
         public bool NoAutoSave { get; set; }

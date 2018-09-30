@@ -16,8 +16,6 @@ namespace NAPS2.WinForms
         private readonly ScannedImageRenderer scannedImageRenderer;
 
        
-        private bool closed;
-
         private ImageForm()
         {
             // For the designer only
@@ -141,12 +139,6 @@ namespace NAPS2.WinForms
         {
             ResetTransform();
             UpdatePreviewBox();
-        }
-
-        private void ImageForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            
-            closed = true;
         }
 
         /// <summary>

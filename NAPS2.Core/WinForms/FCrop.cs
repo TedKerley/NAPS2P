@@ -48,8 +48,8 @@ namespace NAPS2.WinForms
 
         protected override void InitTransform()
         {
-            originalWidth = workingImage.Width;
-            originalHeight = workingImage.Height;
+            originalWidth = this.ImagePreviewHelper.WorkingImage.Width;
+            originalHeight = this.ImagePreviewHelper.WorkingImage.Height;
             if (_lastTransform != null && _lastSize == this.ImagePreviewHelper.WorkingImage.Size)
             {
                 CropTransform = _lastTransform;
