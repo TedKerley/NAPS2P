@@ -18,6 +18,7 @@ namespace NAPS2.WinForms
 
     public partial class ImageAreaSelector : UserControl
     {
+
         public EventHandler SelectedAreaChanged;
 
         private Point dragStartCoords;

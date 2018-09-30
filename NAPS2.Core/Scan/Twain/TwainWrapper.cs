@@ -454,7 +454,7 @@ namespace NAPS2.Scan.Twain
             ds.DGImage.ImageLayout.Get(out TWImageLayout imageLayout);
 
             int dpi = scanProfile.Resolution.ToIntDpi();
-            Offset offsets = scanParams.Offsets;
+            Offset offsets = scanParams.Offsets ?? new Offset();
            
             // Note - the frame dimensions are in inches, so offsets
             // need to be converted by dividing by the dots per inch value.

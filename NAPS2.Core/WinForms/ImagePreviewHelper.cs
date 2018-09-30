@@ -7,6 +7,7 @@
 namespace NAPS2.WinForms
 {
     using System;
+    using System.Diagnostics;
     using System.Drawing;
     using System.Threading.Tasks;
     using System.Windows.Forms;
@@ -20,6 +21,11 @@ namespace NAPS2.WinForms
         private readonly Control parentControl;
 
         private readonly ScannedImageRenderer scannedImageRenderer;
+
+        /// <summary>
+        ///     Flag to record whether this <see cref="ImagePreviewHelper" /> instance has been disposed.
+        /// </summary>
+        private bool disposed = false;
 
         private bool previewOutOfDate;
 
@@ -41,6 +47,17 @@ namespace NAPS2.WinForms
             this.PictureBox = pictureBox;
             this.scannedImageRenderer = scannedImageRenderer;
             this.parentControl = parentControl;
+        }
+
+        /// <summary>
+        ///     Finalizes an instance of the <see cref="ImagePreviewHelper" /> class.
+        ///     Disposes of un-managed resources in the event that that this <see cref="ImagePreviewHelper" /> instance has
+        ///     not already been disposed when it is garbage collected.
+        /// </summary>
+        ~ImagePreviewHelper()
+        {
+            Debug.Assert(false, "Dispose method not called for ImagePreviewHelper.");
+            this.Dispose(disposing: false);
         }
 
         public Size CurrentImageSize => this.workingImage.Value.Size;
@@ -65,12 +82,14 @@ namespace NAPS2.WinForms
 
         private PictureBox PictureBox { get; }
 
-        // TODO correct dispose pattern.
+        /// <summary>
+        ///     Implementation of the IDisposable interface.
+        ///     See http://msdn.microsoft.com/en-us/library/b1yfkh5e(v=vs.110).aspx
+        /// </summary>
         public void Dispose()
         {
-            this.workingImage.Dispose();
-            this.WorkingImage2.Dispose();
-            this.previewTimer?.Dispose();
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
         public Bitmap GetImage() => (Bitmap)this.WorkingImage.Clone();
@@ -167,9 +186,58 @@ namespace NAPS2.WinForms
             this.previewOutOfDate = true;
         }
 
-        class BitmapReference
+        /// <summary>
+        ///     Helper function to perform the actual cleanup.
+        /// </summary>
+        /// <param name="disposing">
+        ///     <c>true</c> if the <see cref="ImagePreviewHelper" /> instance is being explicitly disposed (i.e. Dispose() is
+        ///     being called from user code from a using statement or finally block), false if the instance is disposed by garbage
+        ///     collection via the finalizer.
+        /// </param>
+        /// <remarks>
+        ///     If called via the finalizer, aggregated managed disposable objects do not need to be disposed, since they will be
+        ///     disposed by
+        ///     their own finalizers or finalizers of their base classes.
+        /// </remarks>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposed)
+            {
+                if (disposing)
+                {
+                    // Free other state (managed member disposable objects).
+                    this.workingImage.Dispose();
+                    this.WorkingImage2.Dispose();
+                    this.previewTimer?.Dispose();
+                }
+
+                // Free own state (un-managed objects).
+                // Set large fields to null.
+
+                // Record that this instance has been disposed.
+                this.disposed = true;
+            }
+        }
+
+        class BitmapReference : IDisposable
         {
             private Bitmap bitmap;
+
+            /// <summary>
+            ///     Flag to record whether this <see cref="BitmapReference" /> instance has been disposed.
+            /// </summary>
+            private bool disposed = false;
+
+            /// <summary>
+            ///     Finalizes an instance of the <see cref="BitmapReference" /> class.
+            ///     Disposes of un-managed resources in the event that that this <see cref="BitmapReference" /> instance has
+            ///     not already been disposed when it is garbage collected.
+            /// </summary>
+            ~BitmapReference()
+            {
+                Debug.Assert(false, "Dispose method not called for BitmapReference.");
+                this.Dispose(disposing: false);
+            }
 
             public Bitmap Value
             {
@@ -185,10 +253,46 @@ namespace NAPS2.WinForms
                 }
             }
 
-            // TODO correct dispose pattern.
+            /// <summary>
+            ///     Implementation of the IDisposable interface.
+            ///     See http://msdn.microsoft.com/en-us/library/b1yfkh5e(v=vs.110).aspx
+            /// </summary>
             public void Dispose()
             {
-                this.bitmap?.Dispose();
+                this.Dispose(disposing: true);
+                GC.SuppressFinalize(this);
+            }
+
+            /// <summary>
+            ///     Helper function to perform the actual cleanup.
+            /// </summary>
+            /// <param name="disposing">
+            ///     <c>true</c> if the <see cref="BitmapReference" /> instance is being explicitly disposed (i.e. Dispose() is
+            ///     being called from user code from a using statement or finally block), false if the instance is disposed by garbage
+            ///     collection
+            ///     via the finalizer.
+            /// </param>
+            /// <remarks>
+            ///     If called via the finalizer, aggregated managed disposable objects do not need to be disposed, since they will be
+            ///     disposed by
+            ///     their own finalizers or finalizers of their base classes.
+            /// </remarks>
+            protected virtual void Dispose(bool disposing)
+            {
+                if (!this.disposed)
+                {
+                    if (disposing)
+                    {
+                        // Free other state (managed member disposable objects).
+                        this.bitmap?.Dispose();
+                    }
+
+                    // Free own state (un-managed objects).
+                    // Set large fields to null.
+
+                    // Record that this instance has been disposed.
+                    this.disposed = true;
+                }
             }
         }
     }
