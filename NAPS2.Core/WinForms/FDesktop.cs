@@ -531,7 +531,7 @@ namespace NAPS2.WinForms
 
             UpdateScanButton();
 
-            await scanPerformer.PerformScan(editSettingsForm.ScanProfile, new ScanParams(), this, notify, ReceiveScannedImage());
+            await scanPerformer.PerformScan(scanProfile, new ScanParams(), this, notify, ReceiveScannedImage());
             Activate();
         }
 
@@ -1190,7 +1190,7 @@ namespace NAPS2.WinForms
         private void tsPreviewScan_Click(object sender, EventArgs e)
         {
             var form = FormFactory.Create<FPreviewScan>();
-            form.ImageCallback = ReceiveScannedImage;
+            form.ImageCallback = ReceiveScannedImage();
             form.ShowDialog();
             UpdateScanButton();
 

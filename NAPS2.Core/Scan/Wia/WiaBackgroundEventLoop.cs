@@ -23,7 +23,7 @@ namespace NAPS2.Scan.Wia
         private Form form;
         private WiaState wiaState;
 
-        public WiaBackgroundEventLoop(ScanProfile profile, ScanDevice scanDevice, ThreadFactory threadFactory, ScanParams scanParams)
+        public WiaBackgroundEventLoop(ScanProfile profile, ScanDevice scanDevice, ScanParams scanParams)
         {
             this.profile = profile;
             this.scanDevice = scanDevice;

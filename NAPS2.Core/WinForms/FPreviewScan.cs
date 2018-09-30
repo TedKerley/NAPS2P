@@ -10,6 +10,7 @@ namespace NAPS2.WinForms
     using System.Collections.Generic;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Threading.Tasks;
     using System.Windows.Forms;
 
     using NAPS2.Config;
@@ -143,23 +144,23 @@ namespace NAPS2.WinForms
             this.Close();
         }
 
-        private void btnPreview_Click(object sender, EventArgs e)
+        private async void btnPreview_Click(object sender, EventArgs e)
         {
-            this.PreviewScan(usePrevious: false);
+            await this.PreviewScanAync(usePrevious: false);
         }
 
-        private void PreviewScan(bool usePrevious)
+        private async Task PreviewScanAync(bool usePrevious)
         {
             ScannedImage newImage = null;
             Bitmap bitmap = null;
 
             try
             {
-                this.previousOffsets = this.Scan(image => newImage = image, preview: true, usePrevious: usePrevious);
+                this.previousOffsets = await this.ScanAsync(image => newImage = image, preview: true, usePrevious: usePrevious);
                 this.offsets.Clear();
 
                 // Disconnect bitmap from underlying file, allowing recoveryfile dispose to delete the associated file.
-                bitmap = (Bitmap)Image.FromStream(this.scannedImageRenderer.RenderToStream(newImage));
+                bitmap = (Bitmap)Image.FromStream(await this.scannedImageRenderer.RenderToStream(newImage));
 
                 this.workingImage?.Dispose();
                 this.workingImage = (Bitmap)bitmap.Clone();
@@ -185,14 +186,14 @@ namespace NAPS2.WinForms
             this.btnPreviewPrevious.Enabled = true;
         }
 
-        private void btnPreviewPrevious_Click(object sender, EventArgs e)
+        private async void btnPreviewPrevious_Click(object sender, EventArgs e)
         {
-            this.PreviewScan(usePrevious: true);
+            await this.PreviewScanAync(usePrevious: true);
         }
 
-        private void btnScan_Click(object sender, EventArgs e)
+        private async void btnScan_Click(object sender, EventArgs e)
         {
-            this.Scan(this.ImageCallback, preview: false, usePrevious: false);
+            await this.ScanAsync(this.ImageCallback, preview: false, usePrevious: false);
         }
 
         private void FPreviewScan_FormClosed(object sender, FormClosedEventArgs e)
@@ -273,9 +274,9 @@ namespace NAPS2.WinForms
             }
         }
 
-        private Offset ScaleCropTransform(ScannedImage img, Bitmap referenceBitmap)
+        private async Task<Offset> ScaleCropTransformAysnc(ScannedImage img, Bitmap referenceBitmap)
         {
-            using (var bitmap = this.scannedImageRenderer.Render(img))
+            using (var bitmap = await this.scannedImageRenderer.Render(img))
             {
                 double xScale = bitmap.Width / (double)referenceBitmap.Width,
                        yScale = bitmap.Height / (double)referenceBitmap.Height;
@@ -289,7 +290,7 @@ namespace NAPS2.WinForms
             }
         }
 
-        private Offset Scan(Action<ScannedImage> onImageAction, bool preview, bool usePrevious)
+        private async Task<Offset> ScanAsync(Action<ScannedImage> onImageAction, bool preview, bool usePrevious)
         {
             Offset offsetsToUse = usePrevious ? 
                 this.previousOffsets : 
@@ -311,7 +312,7 @@ namespace NAPS2.WinForms
             ScannedImage scan = null;
 
             scanProfile.Resolution = preview ? scanProfile.PrevewResolution : scanProfile.Resolution;
-            this.scanPerformer.PerformScan(
+            await this.scanPerformer.PerformScan(
                 scanProfile,
                 new ScanParams() { Offsets = offsetsToUse },
                 this,
@@ -323,7 +324,7 @@ namespace NAPS2.WinForms
 
             int requestedImageHeight = (int)(scanProfile.PageSize.PageDimensions().HeightInInches() * dpi - offsetsToUse.Top - offsetsToUse.Bottom);
 
-            using (Bitmap bitmap = (Bitmap) Image.FromStream(this.scannedImageRenderer.RenderToStream(scan)))
+            using (Bitmap bitmap = (Bitmap) Image.FromStream(await this.scannedImageRenderer.RenderToStream(scan)))
             {
                 int widthOversize = bitmap.Width - requestedImageWidth;
                 int heightOversize = bitmap.Height - requestedImageHeight;
@@ -335,7 +336,7 @@ namespace NAPS2.WinForms
                         Bottom = heightOversize,
                         Right = widthOversize
                     });
-                    scan.SetThumbnail(thumbnailRenderer.RenderThumbnail(scan));
+                    scan.SetThumbnail(await thumbnailRenderer.RenderThumbnail(scan));
                 }
 
             }

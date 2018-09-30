@@ -43,7 +43,7 @@ namespace NAPS2.Scan.Wia
 
         protected override async Task ScanInternal(ScannedImageSource.Concrete source)
         {
-            using (var eventLoop = new WiaBackgroundEventLoop(ScanProfile, ScanDevice, threadFactory, ScanParams))
+            using (var eventLoop = new WiaBackgroundEventLoop(ScanProfile, ScanDevice, ScanParams))
             {
                 bool supportsFeeder = eventLoop.GetSync(wia => WiaApi.DeviceSupportsFeeder(wia.Device));
                 if (ScanProfile.PaperSource != ScanSource.Glass && !supportsFeeder)
